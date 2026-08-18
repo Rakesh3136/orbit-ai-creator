@@ -1,0 +1,19 @@
+publishing:
+  require_human_approval: true
+  block_if_low_confidence: true
+
+human_review_required:
+  - legal allegations
+  - medical claims
+  - financial advice
+  - political persuasion
+  - highly sensitive news
+  - copyright uncertainty
+  - sponsorship contracts
+  - account or security changes
+
+content_rules:
+  no_mass_production: true
+  no_unverified_claims: true
+  no_misleading_titles: true
+  no_unlicensed_assets: true
