@@ -1,0 +1,29 @@
+name: production-smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  render-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install ORBIT
+        run: python -m pip install -e '.[dev]'
+      - name: Render title-card smoke video
+        run: orbit "AI and the future of work" --render-title-card --output data/smoke
+      - name: Validate video exists
+        run: |
+          test -s data/smoke/title_card.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 data/smoke/title_card.mp4
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbit-title-card-smoke
+          path: data/smoke/title_card.mp4
