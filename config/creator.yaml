@@ -1,0 +1,24 @@
+channel:
+  project_name: ORBIT
+  positioning: "Investigate surprising things changing the world and explain what they mean for the future."
+  pillars:
+    - AI and emerging technology
+    - science and discoveries
+    - business and companies
+    - future of work and society
+    - hidden systems behind everyday life
+    - internet and digital culture
+  formats:
+    flagship: "8-18 minute original documentary"
+    explainer: "5-10 minute explanation"
+    shorts: "20-60 second discovery content"
+
+quality:
+  minimum_idea_score: 70
+  minimum_overall_score: 75
+  require_sources: true
+  require_human_approval: true
+
+budget:
+  monthly_usd: 0
+  allow_paid_services: false
