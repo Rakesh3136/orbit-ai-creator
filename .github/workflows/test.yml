@@ -12,6 +12,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev]'
-      - run: pytest -q
+      - name: Install project
+        run: python -m pip install -e '.[dev]'
+      - name: Verify import and bytecode
+        run: |
+          python -c "import orbit; print('ORBIT', orbit.__version__)"
+          python -m compileall -q orbit
+      - name: Run tests
+        run: python -m pytest -q
