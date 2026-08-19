@@ -38,12 +38,10 @@ class EpisodeRenderer:
 
     @staticmethod
     def _wrapped(text: str, width: int = 54) -> str:
-        return "\\n".join(textwrap.wrap(text.replace("%", "%%"), width=width) or [""])
+        return "\n".join(textwrap.wrap(text.replace("%", "%%"), width=width) or [""])
 
     @staticmethod
     def _ffmpeg_path(path: Path) -> str:
-        # FFmpeg filter syntax uses ':' as a separator, so Windows drive letters
-        # need escaping. Forward slashes work reliably across FFmpeg builds.
         value = path.as_posix().replace("'", "\\'")
         return value.replace(":", "\\:")
 
