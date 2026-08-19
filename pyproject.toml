@@ -21,7 +21,7 @@ youtube = [
 [project.scripts]
 orbit = "orbit.main:main"
 orbit-doctor = "orbit.doctor:main"
-orbit-connect-youtube = "scripts.connect_youtube:main"
+orbit-connect-youtube = "orbit.youtube.connect:main"
 
 [tool.setuptools.packages.find]
 include = ["orbit*"]
