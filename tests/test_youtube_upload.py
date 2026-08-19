@@ -13,6 +13,7 @@ def test_upload_rejects_missing_video_before_provider_call(tmp_path: Path) -> No
             title="Test",
             description="Test",
             privacy_status="private",
+            human_approved=True,
         )
 
 
@@ -26,4 +27,5 @@ def test_upload_rejects_invalid_privacy_status(tmp_path: Path) -> None:
             title="Test",
             description="Test",
             privacy_status="invalid",
+            human_approved=True,
         )
