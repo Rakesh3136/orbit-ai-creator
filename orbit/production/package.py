@@ -16,8 +16,21 @@ class PublishingPackage:
     chapters: list[str]
     script_path: str
     render_plan_path: str
+    video_path: str = ""
+    captions_path: str = ""
+    provenance_path: str = ""
+    upload_privacy: str = "private"
+    human_approval_required: bool = True
 
-    def write(self, directory: str | Path, script: Script) -> Path:
+    def write(
+        self,
+        directory: str | Path,
+        script: Script,
+        *,
+        video_path: str = "",
+        captions_path: str = "",
+        provenance_path: str = "",
+    ) -> Path:
         destination = Path(directory)
         destination.mkdir(parents=True, exist_ok=True)
         script_path = destination / "script.txt"
@@ -37,7 +50,10 @@ class PublishingPackage:
             chapters=[],
             script_path=str(script_path),
             render_plan_path=str(plan_path),
+            video_path=video_path,
+            captions_path=captions_path,
+            provenance_path=provenance_path,
         )
         manifest = destination / "publishing_package.json"
-        manifest.write_text(json.dumps(asdict(package), indent=2), encoding="utf-8")
+        manifest.write_text(json.dumps(asdict(package), indent=2, ensure_ascii=False), encoding="utf-8")
         return manifest
