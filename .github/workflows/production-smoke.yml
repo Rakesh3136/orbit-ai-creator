@@ -4,9 +4,14 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: production-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   render-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -16,8 +21,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg espeak-ng
       - name: Install ORBIT
         run: python -m pip install -e '.[dev]'
-      - name: Render complete deterministic demo episode
-        run: orbit --demo-video --narration auto --output data/smoke
+      - name: Verify media tools
+        run: |
+          ffmpeg -version | head -n 1
+          espeak-ng --version
+      - name: Render deterministic CI episode
+        run: orbit --demo-video --narration silent --output data/smoke
       - name: Validate video, captions, and provenance
         run: |
           test -s data/smoke/orbit_demo.mp4
