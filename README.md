@@ -2,67 +2,147 @@
 
 ORBIT is a local-first, $0-start AI creator system for building an original YouTube media brand.
 
-## Mission
+## What ORBIT does
 
-Discover strong stories, research them, write original scripts, fact-check claims, prepare production assets, publish to YouTube, measure performance, and improve the next episode.
+```text
+Discover → Research → Idea scoring → Script → Quality gate
+    → Narration → Captions → Visual composition → MP4 render
+    → Publishing package → Human approval → YouTube upload
+    → Analytics → Learning → Next episode
+```
 
-## Current V0.2 capabilities
+The system is deliberately built as an original-media workflow rather than a mass-production bot.
 
-- Research and idea discovery
-- Script drafting and quality scoring
-- SQLite local memory
+## Current capabilities
+
+- Zero-cost public RSS research bootstrap
+- Idea ranking and quality scoring
+- Deterministic script drafting
+- Optional local Ollama script generation
+- Fact/uncertainty tracking in the research model
+- Local SQLite memory
 - Render-plan generation
-- FFmpeg title-card rendering when FFmpeg is installed
-- YouTube publishing-package generation
-- Optional YouTube OAuth 2.0 integration
-- Optional YouTube upload adapter using `videos.insert`
-- Optional YouTube analytics adapter
-- Automated tests in GitHub Actions
+- Free/local narration through `espeak-ng` or `espeak`
+- Silent-render fallback for machines without TTS
+- SRT caption generation
+- Full FFmpeg episode rendering
+- Asset SHA-256 provenance registry
+- Publishing-package generation
+- YouTube OAuth 2.0 adapter
+- YouTube private/unlisted/public upload adapter
+- YouTube analytics adapter
+- Analytics-to-strategy learning engine
+- Environment diagnostics
+- Automated unit/production CI
 
-## $0-first architecture
+## $0-first local setup
+
+Requirements:
 
 - Python 3.11+
-- SQLite for local memory
-- FFmpeg for local video assembly
-- Pluggable model/provider interfaces
-- YouTube Data API with OAuth 2.0
-- No credentials committed to Git
+- FFmpeg
+- Optional: espeak-ng for free local narration
+- Optional: Ollama + a local model for richer script generation
+- Optional: Google Cloud project + YouTube Data API OAuth credentials for channel upload
 
-Install optional YouTube dependencies only when you are ready to connect the channel:
-
-```bash
-pip install -e '.[youtube]'
-```
-
-Basic local commands:
+Install:
 
 ```bash
-orbit --discover
-orbit "artificial intelligence and the future of work" --package
-orbit "artificial intelligence and the future of work" --render-title-card
+python -m venv .venv
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -e '.[dev]'
 ```
 
-The default flow remains local and human-reviewed.
+Check the machine:
 
-## YouTube safety
+```bash
+orbit-doctor
+```
 
-ORBIT does not treat the presence of credentials as permission to publish. The publish gate requires a passing quality score and explicit human approval. The YouTube adapter uses the upload scope and defaults to private uploads at the application layer.
+Generate a deterministic end-to-end demo video without web research:
 
-YouTube's current API documentation states that `videos.insert` is the upload method and that OAuth 2.0 is required for authorized insert/update/delete requests. Unverified API projects uploading videos are currently restricted to private viewing until the project completes the required audit. See the official documentation links in the project issues/release notes.
+```bash
+orbit --demo-video --narration auto --output data/demo
+```
 
-## Quality / originality
+This produces:
 
-ORBIT must not mass-produce repetitive videos. Every episode needs a meaningful viewer promise, original editorial treatment, evidence-backed claims, and a quality gate before publishing.
+```text
+data/demo/
+├── orbit_demo.mp4
+├── orbit_demo.srt
+├── asset_provenance.json
+└── package/
+    ├── script.txt
+    ├── render_plan.json
+    └── publishing_package.json
+```
 
-Sensitive content, legal allegations, medical/financial claims, political persuasion, copyright uncertainty, sponsorship contracts, and account/security changes require human review.
+Run research and generate a publishing package:
 
-## Roadmap
+```bash
+orbit "artificial intelligence and the future of work" --package --output data/episode
+```
 
-1. Finish V1 production pipeline
-2. Add local/open model adapter for richer script and visual generation
-3. Add asset licensing/provenance tracking
-4. Connect YouTube channel through OAuth
-5. Upload first private test video
-6. Collect analytics
-7. Improve the creator from observed performance
-8. Enable carefully bounded autonomous publishing only after the system proves reliable
+Render a researched episode locally:
+
+```bash
+orbit "artificial intelligence and the future of work" --render-video --narration auto --output data/episode
+```
+
+## Optional local model
+
+ORBIT can use a local Ollama server without a paid API:
+
+```bash
+set ORBIT_LLM_PROVIDER=ollama
+set ORBIT_OLLAMA_MODEL=<your-local-model-name>
+```
+
+On PowerShell use `$env:ORBIT_LLM_PROVIDER` and `$env:ORBIT_OLLAMA_MODEL` instead.
+
+If the local model is unavailable or returns malformed output, ORBIT falls back to its deterministic writer so CI remains reproducible.
+
+## YouTube connection
+
+Install the optional integration:
+
+```bash
+python -m pip install -e '.[youtube]'
+```
+
+Create a Google OAuth desktop client for the YouTube Data API and place the downloaded client secret file at:
+
+```text
+client_secret.json
+```
+
+Then run:
+
+```bash
+orbit-connect-youtube
+```
+
+The resulting `token.json` is ignored by Git. ORBIT requests only the YouTube upload scope and the application defaults to private uploads. Credentials do not imply publishing permission; the V1 publish gate still requires explicit human approval.
+
+## CI
+
+Two GitHub Actions workflows protect the project:
+
+1. `test.yml` installs the package, verifies imports/bytecode, and runs the Python test suite.
+2. `production-smoke.yml` installs FFmpeg + espeak-ng, renders a complete deterministic episode, validates the MP4/SRT/provenance files, and uploads them as an artifact.
+
+## Monetization strategy
+
+ORBIT is designed to build audience first and monetize legitimately through YouTube and other channel-relevant revenue streams once eligible. It does not attempt to bypass platform eligibility or automate misleading/repetitive content.
+
+## Safety and originality
+
+ORBIT blocks publication when quality is below threshold or human approval is absent. Sensitive topics, legal allegations, medical/financial claims, political persuasion, copyright uncertainty, sponsorship contracts, and account/security changes require additional human review.
+
+Every asset should have documented provenance. The V1 renderer generates its own backgrounds and local narration so the demo does not depend on stock footage or copyrighted third-party media.
+
+## Roadmap status
+
+The engineering baseline is complete for a local-first V1/V2 creator loop. Remaining real-world setup is limited to external services that cannot be completed from source code alone: the user's Google OAuth authorization and any final channel/account configuration.
