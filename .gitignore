@@ -11,6 +11,7 @@ venv/
 .DS_Store
 *.db
 *.sqlite3
+data/
 media/raw/
 media/generated/
 media/final/
