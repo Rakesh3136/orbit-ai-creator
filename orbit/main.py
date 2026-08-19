@@ -12,19 +12,6 @@ from orbit.production.render_plan import build_render_plan
 from orbit.production.video_builder import VideoBuilder
 
 
-def _print_result(result) -> None:
-    report = result.quality
-    approved = result.quality and result.quality.overall >= 75 and result.quality_agent.approve(report) if hasattr(result, "quality_agent") else report.overall >= 75
-    print(f"Topic: {result.topic}")
-    print(f"Title: {result.script.title}")
-    print(f"Quality: {report.overall:.1f} ({'PASS' if approved else 'BLOCK'})")
-    print("\nHOOK\n" + result.script.hook)
-    if report.notes:
-        print("\nNOTES")
-        for note in report.notes:
-            print(f"- {note}")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the ORBIT creator pipeline locally.")
     parser.add_argument("topic", nargs="?", help="topic to research")
@@ -42,15 +29,21 @@ def main() -> None:
     if args.demo_video:
         script = demo_script()
         plan = build_render_plan(script)
-        manifest = PublishingPackage([], "", [], [], "", "").write(output / "package", script)
-        result = EpisodeRenderer().render(
+        rendered = EpisodeRenderer().render(
             plan,
             output / "orbit_demo.mp4",
             narration_backend=args.narration,
         )
-        print(f"Demo video: {result.video_path}")
-        print(f"Captions: {result.captions_path}")
-        print(f"Provenance: {result.provenance_path}")
+        manifest = PublishingPackage([], "", [], [], "", "").write(
+            output / "package",
+            script,
+            video_path=str(rendered.video_path),
+            captions_path=str(rendered.captions_path),
+            provenance_path=str(rendered.provenance_path),
+        )
+        print(f"Demo video: {rendered.video_path}")
+        print(f"Captions: {rendered.captions_path}")
+        print(f"Provenance: {rendered.provenance_path}")
         print(f"Publishing package: {manifest}")
         return
 
