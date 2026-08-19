@@ -40,6 +40,13 @@ class EpisodeRenderer:
     def _wrapped(text: str, width: int = 54) -> str:
         return "\\n".join(textwrap.wrap(text.replace("%", "%%"), width=width) or [""])
 
+    @staticmethod
+    def _ffmpeg_path(path: Path) -> str:
+        # FFmpeg filter syntax uses ':' as a separator, so Windows drive letters
+        # need escaping. Forward slashes work reliably across FFmpeg builds.
+        value = path.as_posix().replace("'", "\\'")
+        return value.replace(":", "\\:")
+
     def render(
         self,
         plan: RenderPlan,
@@ -67,8 +74,6 @@ class EpisodeRenderer:
             text_file.write_text(self._wrapped(scene.narration), encoding="utf-8")
             segment = work / f"{safe_name}.mp4"
 
-            # Use a generated background and text-only composition in V1. This is
-            # deliberately copyright-safe; richer asset providers plug in later.
             fontfile = None
             for candidate in [
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -76,14 +81,19 @@ class EpisodeRenderer:
                 "C:/Windows/Fonts/arial.ttf",
             ]:
                 if Path(candidate).exists():
-                    fontfile = candidate
+                    fontfile = Path(candidate)
                     break
+            text_ref = self._ffmpeg_path(text_file)
             draw = (
-                f"drawtext=textfile='{text_file.as_posix()}':fontcolor=white:fontsize=48:"
+                f"drawtext=textfile='{text_ref}':fontcolor=white:fontsize=48:"
                 "x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=black@0.30:boxborderw=28"
             )
             if fontfile:
-                draw = draw.replace("drawtext=textfile=", f"drawtext=fontfile='{fontfile}':textfile=")
+                font_ref = self._ffmpeg_path(fontfile)
+                draw = draw.replace(
+                    "drawtext=textfile=",
+                    f"drawtext=fontfile='{font_ref}':textfile=",
+                )
 
             subprocess.run(
                 [
