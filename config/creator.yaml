@@ -19,6 +19,11 @@ quality:
   require_sources: true
   require_human_approval: true
 
+publishing:
+  youtube_privacy: private
+  allow_public: false
+  allow_unlisted: false
+
 budget:
   monthly_usd: 0
   allow_paid_services: false
