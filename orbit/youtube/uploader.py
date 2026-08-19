@@ -8,8 +8,8 @@ UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 class YouTubeUploader:
     """Thin adapter around YouTube Data API v3 videos.insert.
 
-    Actual uploads require explicit human approval at the caller. ORBIT never
-    enables unattended publishing merely because credentials exist.
+    V1 requires explicit human approval at the adapter boundary. Credentials
+    never imply permission to publish.
     """
 
     def __init__(self, credentials) -> None:
@@ -22,7 +22,11 @@ class YouTubeUploader:
         description: str,
         tags: list[str] | None = None,
         privacy_status: str = "private",
+        *,
+        human_approved: bool = False,
     ) -> str:
+        if not human_approved:
+            raise PermissionError("Human approval is required before any YouTube upload in V1")
         if privacy_status not in {"private", "unlisted", "public"}:
             raise ValueError("privacy_status must be private, unlisted, or public")
         path = Path(video_path)
