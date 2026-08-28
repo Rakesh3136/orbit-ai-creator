@@ -110,8 +110,14 @@ class EpisodeRenderer:
             registry.add(audio, asset_type="narration", source=f"local:{narration.backend}", license="free/local")
             registry.add(segment, asset_type="scene-video", source="generated:orbit", license="self-generated")
 
+        # concat demuxer paths are resolved relative to concat.txt, so only
+        # write the scene filenames here. Writing work-relative paths again
+        # would incorrectly duplicate the work directory during concatenation.
         concat_file = work / "concat.txt"
-        concat_file.write_text("\n".join(f"file '{p.as_posix()}'" for p in scene_files), encoding="utf-8")
+        concat_file.write_text(
+            "\n".join(f"file '{p.name}'" for p in scene_files),
+            encoding="utf-8",
+        )
         subprocess.run(
             [self.ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file), "-c", "copy", str(destination)],
             check=True,
