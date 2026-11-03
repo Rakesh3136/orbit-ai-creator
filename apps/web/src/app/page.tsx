@@ -7,7 +7,7 @@ const API = (process.env.NEXT_PUBLIC_AIMN_API_URL || "http://localhost:8000").re
 type Network = { id: string; name: string; default_locale: string; status: string };
 type Channel = { id: string; name: string; slug: string; niche?: string | null; status: string; connected: boolean };
 type Agent = { id: string; name: string; department: string; description: string };
-type Task = { id: string; title: string; agent_id: string; status: string; external_action: boolean };
+type Task = { id: string; title: string; agent_id: string; parent_task_id?: string | null; status: string; external_action: boolean };
 type Approval = { id: string; task_id: string; status: string; decision_note?: string | null };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -132,7 +132,7 @@ export default function Home() {
       await request(`/api/v1/networks/${networkId}/tasks`, {
         method: "POST", body: JSON.stringify({ agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false }),
       });
-      setTaskTitle(""); setTaskInstruction(""); await refresh(networkId); setNotice("Task queued. Worker execution is not enabled yet.");
+      setTaskTitle(""); setTaskInstruction(""); await refresh(networkId); setNotice("Task queued. The local worker will process it when the worker process is running.");
     });
   }
 
@@ -195,12 +195,12 @@ export default function Home() {
               {networkId && <form className="stack-form" onSubmit={createChannel}><input placeholder="Channel name" value={channelName} onChange={(e) => setChannelName(e.target.value)} required minLength={2} /><input placeholder="Niche (optional)" value={channelNiche} onChange={(e) => setChannelNiche(e.target.value)} /><button className="secondary-button" disabled={busy}><Plus size={14} /> Add channel profile</button></form>}
             </section>
             <section className="panel"><div className="section-heading"><div><h2>Agent workforce</h2><p>Available specialist roles.</p></div></div>
-              <div className="data-list">{agents.map((a) => <div className="data-row" key={a.id}><div><b>{a.name}</b><small>{a.description}</small></div><span className="tag">READY</span></div>)}</div>
+              <div className="data-list">{agents.map((a) => <div className="data-row" key={a.id}><div><b>{a.name}</b><small>{a.description}</small></div><span className="tag">{a.id === "ceo" ? "ORCHESTRATOR" : "LOCAL PLAN"}</span></div>)}</div>
             </section>
           </div>
           <div className="columns">
-            <section className="panel"><div className="section-heading"><div><h2>Task queue</h2><p>Tasks are recorded; a worker process is the next milestone.</p></div></div>
-              {tasks.length ? <div className="data-list">{tasks.map((t) => <div className="data-row" key={t.id}><div><b>{t.title}</b><small>{t.agent_id}</small></div><span className="tag">{t.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No tasks queued yet.</p>}
+            <section className="panel"><div className="section-heading"><div><h2>Task queue</h2><p>Internal planning tasks run locally; CEO tasks coordinate five specialists.</p></div></div>
+              {tasks.length ? <div className="data-list">{tasks.map((t) => <div className="data-row" key={t.id}><div><b>{t.title}</b><small>{t.agent_id}{t.parent_task_id ? " · specialist subtask" : ""}</small></div><span className="tag">{t.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No tasks queued yet.</p>}
               {networkId && <form className="stack-form" onSubmit={createTask}><input placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required minLength={3} /><select value={taskAgent} onChange={(e) => setTaskAgent(e.target.value)}>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select><textarea placeholder="Describe the research or work to perform…" value={taskInstruction} onChange={(e) => setTaskInstruction(e.target.value)} required minLength={5} /><button className="secondary-button" disabled={busy || !agents.length}><Plus size={14} /> Queue task</button></form>}
             </section>
             <section className="panel"><div className="section-heading"><div><h2>Approval center</h2><p>Owner decisions for external actions.</p></div></div>
