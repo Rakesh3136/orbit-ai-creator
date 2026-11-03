@@ -1,29 +1,31 @@
 # AIMN API
 
-FastAPI control plane for media networks and channel workspaces.
+FastAPI control plane for the Autonomous AI Media Network.
 
-## Local setup
+## Local development
 
 ```bash
 cd apps/api
 python -m venv .venv
-# Activate the environment, then:
+source .venv/bin/activate
 python -m pip install -e ".[dev]"
-export AIMN_ADMIN_API_KEY="replace-with-a-long-random-local-key"
-alembic upgrade head
+cp .env.example .env
 uvicorn aimn_api.main:app --reload --app-dir src
 ```
 
-For PostgreSQL install `.[dev,postgres]` and set `DATABASE_URL`, e.g. `postgresql+psycopg://aimn:YOUR_PASSWORD@localhost:5432/aimn`.
+Configure `DATABASE_URL` and a long random `AIMN_ADMIN_API_KEY`. Management routes fail closed when the key is missing. This API-key guard is a temporary single-operator bootstrap control, not final owner identity or role-based access control.
 
-## API routes
+## Current control-plane endpoints
 
-- GET /health/live and /health/ready
-- POST /api/v1/networks; GET /api/v1/networks and /api/v1/networks/{network_id}
-- POST /api/v1/networks/{network_id}/channels
-- GET /api/v1/networks/{network_id}/channels and /{channel_id}
-- PATCH /api/v1/networks/{network_id}/channels/{channel_id}
+- `GET /health/live`, `GET /health/ready`
+- `GET /api/v1/system`
+- `GET/POST /api/v1/networks`
+- `GET /api/v1/networks/{network_id}`
+- `GET/POST /api/v1/networks/{network_id}/channels`
+- `GET/PATCH /api/v1/networks/{network_id}/channels/{channel_id}`
+- `GET /api/v1/agents` — built-in specialist agent catalogue
+- `GET/POST /api/v1/networks/{network_id}/tasks` — task queue intake and inspection
+- `GET /api/v1/networks/{network_id}/approvals` — pending and historical approvals
+- `POST /api/v1/approvals/{approval_id}/decision` — approve or reject a gated external action
 
-All management routes require X-AIMN-API-Key. If AIMN_ADMIN_API_KEY is unset, the API fails closed with HTTP 503. This is a temporary single-operator bootstrap guard, not the final user authentication/RBAC implementation.
-
-The API stores only a credential reference. OAuth tokens and client secrets are not accepted or returned by channel endpoints. Google OAuth connection and encrypted credential storage will be implemented separately.
+External-action tasks enter `awaiting_approval`; they cannot be dispatched until explicitly approved. This milestone supplies the persistent orchestration control plane, not yet an LLM execution runtime.

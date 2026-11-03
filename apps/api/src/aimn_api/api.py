@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from aimn_api.db import get_db
-from aimn_api.models import Channel, Network
-from aimn_api.schemas import ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead
+from aimn_api.models import AgentTask, Approval, Channel, Network
+from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead
 from aimn_api.security import require_admin_api_key
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_admin_api_key)])
@@ -111,3 +111,115 @@ def update_channel(network_id: uuid.UUID, channel_id: uuid.UUID, payload: Channe
         raise HTTPException(status_code=409, detail="Channel update conflicts with an existing record")
     db.refresh(item)
     return channel_out(item)
+
+
+AGENTS = [
+    {"id": "research", "name": "Research & Intelligence", "department": "Research", "description": "Find trends, audience questions, source material and evidence."},
+    {"id": "strategist", "name": "Channel Strategist", "department": "Strategy", "description": "Turn channel goals and research into a differentiated growth plan."},
+    {"id": "writer", "name": "Editorial & Scriptwriter", "department": "Editorial", "description": "Draft original scripts, hooks, titles and descriptions."},
+    {"id": "fact-checker", "name": "Fact Checker", "department": "Quality", "description": "Check claims, source quality, uncertainty and originality risks."},
+    {"id": "producer", "name": "Creative Producer", "department": "Production", "description": "Prepare shot lists, visual plans, narration and edit specifications."},
+    {"id": "growth-analyst", "name": "Growth Analyst", "department": "Growth", "description": "Interpret performance data and propose measurable experiments."},
+    {"id": "community", "name": "Community Manager", "department": "Community", "description": "Draft helpful comment replies for owner review."},
+    {"id": "publisher", "name": "Publishing Manager", "department": "Publishing", "description": "Prepare metadata and publishing checklists; external publishing requires approval."},
+]
+AGENT_IDS = {agent["id"] for agent in AGENTS}
+
+def task_out(item: AgentTask) -> TaskRead:
+    return TaskRead(
+        id=item.id, network_id=item.network_id, channel_id=item.channel_id,
+        agent_id=item.agent_id, title=item.title, instruction=item.instruction,
+        status=item.status, external_action=item.external_action, result=item.result,
+        error=item.error, created_at=item.created_at, updated_at=item.updated_at,
+    )
+
+def approval_out(item: Approval) -> ApprovalRead:
+    return ApprovalRead(
+        id=item.id, task_id=item.task_id, status=item.status,
+        decision_note=item.decision_note, created_at=item.created_at,
+        decided_at=item.decided_at,
+    )
+
+@router.get("/agents")
+def list_agents():
+    return AGENTS
+
+@router.post("/networks/{network_id}/tasks", response_model=TaskRead, status_code=201)
+def create_task(network_id: uuid.UUID, payload: TaskCreate, db: Session = Depends(get_db)):
+    get_active_network(db, network_id)
+    if payload.agent_id not in AGENT_IDS:
+        raise HTTPException(status_code=422, detail="Unknown agent_id")
+    if payload.channel_id:
+        channel = db.query(Channel).filter(
+            Channel.id == payload.channel_id, Channel.network_id == network_id
+        ).first()
+        if channel is None:
+            raise HTTPException(status_code=404, detail="Channel not found in this network")
+    item = AgentTask(
+        network_id=network_id, channel_id=payload.channel_id,
+        agent_id=payload.agent_id, title=payload.title.strip(),
+        instruction=payload.instruction.strip(),
+        external_action=payload.external_action,
+        status="awaiting_approval" if payload.external_action else "queued",
+    )
+    db.add(item)
+    db.flush()
+    if payload.external_action:
+        db.add(Approval(task_id=item.id))
+    db.commit()
+    db.refresh(item)
+    return task_out(item)
+
+@router.get("/networks/{network_id}/tasks", response_model=list[TaskRead])
+def list_tasks(
+    network_id: uuid.UUID,
+    task_status: str | None = Query(default=None, alias="status"),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    get_active_network(db, network_id)
+    query = db.query(AgentTask).filter(AgentTask.network_id == network_id)
+    if task_status:
+        allowed = {"queued", "awaiting_approval", "running", "completed", "failed", "cancelled"}
+        if task_status not in allowed:
+            raise HTTPException(status_code=422, detail="Invalid task status")
+        query = query.filter(AgentTask.status == task_status)
+    return [task_out(x) for x in query.order_by(AgentTask.created_at.desc()).offset(offset).limit(limit).all()]
+
+@router.get("/networks/{network_id}/approvals", response_model=list[ApprovalRead])
+def list_approvals(
+    network_id: uuid.UUID,
+    approval_status: str | None = Query(default=None, alias="status"),
+    db: Session = Depends(get_db),
+):
+    get_active_network(db, network_id)
+    query = db.query(Approval).join(AgentTask).filter(AgentTask.network_id == network_id)
+    if approval_status:
+        if approval_status not in {"pending", "approved", "rejected"}:
+            raise HTTPException(status_code=422, detail="Invalid approval status")
+        query = query.filter(Approval.status == approval_status)
+    return [approval_out(x) for x in query.order_by(Approval.created_at.desc()).limit(100).all()]
+
+@router.post("/approvals/{approval_id}/decision", response_model=ApprovalRead)
+def decide_approval(
+    approval_id: uuid.UUID,
+    payload: ApprovalDecision,
+    db: Session = Depends(get_db),
+):
+    item = db.query(Approval).filter(Approval.id == approval_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    if item.status != "pending":
+        raise HTTPException(status_code=409, detail="Approval has already been decided")
+    task = db.get(AgentTask, item.task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Associated task not found")
+    from aimn_api.models import utc_now
+    item.status = payload.decision
+    item.decision_note = payload.note
+    item.decided_at = utc_now()
+    task.status = "queued" if payload.decision == "approved" else "cancelled"
+    db.commit()
+    db.refresh(item)
+    return approval_out(item)

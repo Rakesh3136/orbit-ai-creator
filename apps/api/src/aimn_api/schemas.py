@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ChannelStatus = Literal["draft", "active", "paused", "archived"]
+TaskStatus = Literal["queued", "awaiting_approval", "running", "completed", "failed", "cancelled"]
 
 class NetworkCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
@@ -66,3 +67,36 @@ class ChannelRead(BaseModel):
     policy: dict
     created_at: datetime
     updated_at: datetime
+
+class TaskCreate(BaseModel):
+    channel_id: uuid.UUID | None = None
+    agent_id: str = Field(min_length=2, max_length=80)
+    title: str = Field(min_length=3, max_length=180)
+    instruction: str = Field(min_length=5, max_length=12000)
+    external_action: bool = False
+
+class TaskRead(BaseModel):
+    id: uuid.UUID
+    network_id: uuid.UUID
+    channel_id: uuid.UUID | None
+    agent_id: str
+    title: str
+    instruction: str
+    status: TaskStatus
+    external_action: bool
+    result: dict
+    error: str | None
+    created_at: datetime
+    updated_at: datetime
+
+class ApprovalRead(BaseModel):
+    id: uuid.UUID
+    task_id: uuid.UUID
+    status: Literal["pending", "approved", "rejected"]
+    decision_note: str | None
+    created_at: datetime
+    decided_at: datetime | None
+
+class ApprovalDecision(BaseModel):
+    decision: Literal["approved", "rejected"]
+    note: str | None = Field(default=None, max_length=1000)
