@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Activity, Bot, CheckCircle2, CircleHelp, Command, LogOut, Plus, RefreshCw, ShieldCheck, Youtube } from "lucide-react";
+import { Activity, Bot, CheckCircle2, Command, LogOut, Plus, RefreshCw, ShieldCheck, Youtube } from "lucide-react";
 
 const API = (process.env.NEXT_PUBLIC_AIMN_API_URL || "http://localhost:8000").replace(/\/$/, "");
 type Network = { id: string; name: string; default_locale: string; status: string };
