@@ -1,7 +1,7 @@
-"""AIMN local task runtime.
+"""AIMN local task runtime with bounded, deterministic CEO orchestration.
 
-This executor creates deterministic planning briefs only. It does not claim to
-perform live research, call an LLM, access YouTube, or publish external content.
+All handlers produce planning artifacts only. No LLM, live research, YouTube
+access, media generation, comments, uploads, or external actions are executed.
 """
 from __future__ import annotations
 from collections.abc import Callable
@@ -43,6 +43,75 @@ HANDLERS: dict[str, Callable[[AgentTask], dict[str, Any]]] = {
     "research":research,"strategist":strategist,"writer":writer,"fact-checker":fact_checker,
     "producer":producer,"growth-analyst":growth,"community":community,"publisher":publisher,
 }
+CEO_STEPS = (
+    ("research","Research brief"),
+    ("strategist","Channel strategy"),
+    ("writer","Script development"),
+    ("fact-checker","Editorial fact-check"),
+    ("producer","Production plan"),
+)
+MAX_CEO_CHILDREN = 5
+
+def _orchestrate(db: Session, task: AgentTask) -> None:
+    """Create a fixed, bounded specialist workflow; never dispatch external actions."""
+    children = []
+    for agent_id, label in CEO_STEPS[:MAX_CEO_CHILDREN]:
+        child = AgentTask(
+            network_id=task.network_id, channel_id=task.channel_id,
+            parent_task_id=task.id, agent_id=agent_id,
+            title=f"{label}: {task.title}"[:180],
+            instruction=f"Objective: {task.instruction}\nYour role: {label}. Return a useful, specific planning artifact.",
+            status="queued", external_action=False,
+        )
+        db.add(child)
+        children.append(child)
+    db.flush()
+    task.result = {
+        "mode":"local_ceo_orchestration",
+        "provider_connected":False,
+        "workflow":"research_strategy_editorial_production",
+        "child_task_ids":[str(child.id) for child in children],
+        "planned_agents":[agent_id for agent_id, _ in CEO_STEPS[:MAX_CEO_CHILDREN]],
+        "max_children":MAX_CEO_CHILDREN,
+        "cautions":["Deterministic workflow; no LLM or live research provider is connected.",
+                    "All child tasks are internal planning tasks; publishing remains disabled."],
+    }
+    task.status = "running"
+    db.commit()
+
+def _finalize_ready_orchestrations(db: Session) -> bool:
+    parents = db.execute(select(AgentTask).where(
+        AgentTask.agent_id=="ceo", AgentTask.status=="running"
+    )).scalars().all()
+    changed = False
+    for parent in parents:
+        if parent.result.get("mode") != "local_ceo_orchestration":
+            continue
+        children = db.execute(select(AgentTask).where(
+            AgentTask.parent_task_id==parent.id
+        ).order_by(AgentTask.created_at.asc(), AgentTask.id.asc())).scalars().all()
+        if not children or any(child.status in {"queued","running","awaiting_approval"} for child in children):
+            continue
+        parent.result = {
+            **parent.result,
+            "status":"failed" if any(child.status != "completed" for child in children) else "completed",
+            "specialist_results":[
+                {"agent_id":child.agent_id,"task_id":str(child.id),"status":child.status,
+                 "result":child.result if child.status=="completed" else None,
+                 "error":child.error}
+                for child in children
+            ],
+            "summary":"All specialist planning steps completed." if all(c.status=="completed" for c in children)
+                     else "One or more specialist steps failed; review the errors before proceeding.",
+        }
+        parent.status = "failed" if any(child.status != "completed" for child in children) else "completed"
+        if parent.status == "failed":
+            parent.error = "One or more CEO specialist tasks failed"
+        db.add(parent)
+        changed = True
+    if changed:
+        db.commit()
+    return changed
 
 def claim_next(db: Session) -> AgentTask | None:
     stmt=(select(AgentTask).where(AgentTask.status=="queued",AgentTask.external_action.is_(False))
@@ -55,14 +124,21 @@ def claim_next(db: Session) -> AgentTask | None:
 
 def run_once(session_factory: sessionmaker) -> str:
     with session_factory() as db:
+        _finalize_ready_orchestrations(db)
         task=claim_next(db)
-        if task is None: return "idle"
+        if task is None:
+            _finalize_ready_orchestrations(db)
+            return "idle"
         task_id=task.id
         try:
+            if task.agent_id == "ceo":
+                _orchestrate(db, task)
+                return "orchestrating"
             handler=HANDLERS.get(task.agent_id)
             if handler is None: raise ValueError(f"No local handler registered for agent '{task.agent_id}'")
             task.result=handler(task); task.status="completed"; task.error=None
             db.commit()
+            _finalize_ready_orchestrations(db)
             return "completed"
         except Exception as exc:
             db.rollback()

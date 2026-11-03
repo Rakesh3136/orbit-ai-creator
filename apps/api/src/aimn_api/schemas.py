@@ -28,15 +28,13 @@ class ChannelCreate(BaseModel):
     primary_language: str = Field(default="en", min_length=2, max_length=20)
     target_regions: list[str] = Field(default_factory=list, max_length=30)
     policy: dict = Field(default_factory=dict)
-
     @field_validator("slug")
     @classmethod
     def slug_format(cls, value: str):
-        value = value.strip().lower()
+        value=value.strip().lower()
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value):
             raise ValueError("Use lowercase letters, numbers and single hyphens")
         return value
-
     @field_validator("target_regions")
     @classmethod
     def normalize_regions(cls, value):
@@ -79,6 +77,7 @@ class TaskRead(BaseModel):
     id: uuid.UUID
     network_id: uuid.UUID
     channel_id: uuid.UUID | None
+    parent_task_id: uuid.UUID | None = None
     agent_id: str
     title: str
     instruction: str
@@ -100,7 +99,6 @@ class ApprovalRead(BaseModel):
 class ApprovalDecision(BaseModel):
     decision: Literal["approved", "rejected"]
     note: str | None = Field(default=None, max_length=1000)
-
 
 class AuthLogin(BaseModel):
     email: str = Field(min_length=3, max_length=254)

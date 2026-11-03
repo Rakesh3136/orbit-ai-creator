@@ -50,10 +50,12 @@ class AgentTask(Base):
     __table_args__ = (
         CheckConstraint("status IN ('queued','awaiting_approval','running','completed','failed','cancelled')", name="ck_agent_tasks_status"),
         Index("ix_agent_tasks_network_created", "network_id", "created_at"),
+        Index("ix_agent_tasks_parent", "parent_task_id"),
     )
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     network_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("networks.id", ondelete="CASCADE"), nullable=False)
     channel_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("channels.id", ondelete="SET NULL"))
+    parent_task_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("agent_tasks.id", ondelete="CASCADE"))
     agent_id: Mapped[str] = mapped_column(String(80), nullable=False)
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
@@ -64,6 +66,8 @@ class AgentTask(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
     network: Mapped[Network] = relationship(back_populates="tasks")
+    parent: Mapped["AgentTask | None"] = relationship(remote_side=[id], back_populates="children")
+    children: Mapped[list["AgentTask"]] = relationship(back_populates="parent", cascade="all, delete-orphan")
     approvals: Mapped[list["Approval"]] = relationship(back_populates="task", cascade="all, delete-orphan")
 
 class Approval(Base):

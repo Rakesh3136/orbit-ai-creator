@@ -114,6 +114,7 @@ def update_channel(network_id: uuid.UUID, channel_id: uuid.UUID, payload: Channe
 
 
 AGENTS = [
+    {"id": "ceo", "name": "AI CEO / Orchestrator", "department": "Executive", "description": "Breaks a creator objective into a bounded specialist workflow and combines the results."},
     {"id": "research", "name": "Research & Intelligence", "department": "Research", "description": "Find trends, audience questions, source material and evidence."},
     {"id": "strategist", "name": "Channel Strategist", "department": "Strategy", "description": "Turn channel goals and research into a differentiated growth plan."},
     {"id": "writer", "name": "Editorial & Scriptwriter", "department": "Editorial", "description": "Draft original scripts, hooks, titles and descriptions."},
@@ -128,7 +129,7 @@ AGENT_IDS = {agent["id"] for agent in AGENTS}
 def task_out(item: AgentTask) -> TaskRead:
     return TaskRead(
         id=item.id, network_id=item.network_id, channel_id=item.channel_id,
-        agent_id=item.agent_id, title=item.title, instruction=item.instruction,
+        parent_task_id=item.parent_task_id, agent_id=item.agent_id, title=item.title, instruction=item.instruction,
         status=item.status, external_action=item.external_action, result=item.result,
         error=item.error, created_at=item.created_at, updated_at=item.updated_at,
     )
