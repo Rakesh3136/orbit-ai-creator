@@ -100,3 +100,8 @@ class ApprovalRead(BaseModel):
 class ApprovalDecision(BaseModel):
     decision: Literal["approved", "rejected"]
     note: str | None = Field(default=None, max_length=1000)
+
+
+class AuthLogin(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=256)

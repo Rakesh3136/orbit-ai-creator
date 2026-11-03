@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from aimn_api.db import get_db
 from aimn_api.models import AgentTask, Approval, Channel, Network
 from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead
-from aimn_api.security import require_admin_api_key
+from aimn_api.security import require_owner_or_api_key
 
-router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_admin_api_key)])
+router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_owner_or_api_key)])
 
 def channel_out(item: Channel) -> ChannelRead:
     return ChannelRead(

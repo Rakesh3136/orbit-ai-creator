@@ -14,10 +14,10 @@
 - [x] Temporary fail-closed API-key bootstrap guard.
 - [x] Tests for API-key protection, channel creation, validation, updates and network scoping.
 - [ ] Verify CI and migration against PostgreSQL.
-- [ ] Connect the web dashboard to the API.
+- [ ] Connect the web dashboard to the API and add owner sign-in UI.
 
 ## Milestone 3 — Owner identity and secure integrations
-- [ ] Owner sign-in and session management.
+- [x] Owner sign-in and signed HttpOnly session management (single owner; no RBAC yet).
 - [ ] RBAC and per-network/channel authorization.
 - [ ] Secret manager adapter and encrypted OAuth credential storage.
 - [ ] Google OAuth connect/disconnect and scope display.
