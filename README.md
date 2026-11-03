@@ -11,6 +11,7 @@ Implemented:
 - Local deterministic specialist worker.
 - Bounded CEO workflow: research → strategy → writing → fact-checking → production.
 - Parent/child task tracking and result aggregation.
+- Docker Compose stack for PostgreSQL, API, worker and dashboard.
 - Existing ORBIT local episode production toolkit (script planning, narration, captions, FFmpeg rendering and provenance).
 - Existing standalone YouTube OAuth/upload/analytics adapters in ORBIT. They are not yet connected to AIMN's dashboard, encrypted credential store or approval service.
 
@@ -50,34 +51,43 @@ ORBIT Production Toolkit (standalone today)
 YouTube adapter (standalone today; approval-gated private uploads)
 ```
 
-## Local setup
+## Run the AIMN stack with Docker
 
-### AIMN API
+Requirements: Docker Engine and the Docker Compose plugin.
 
-```bash
-cd apps/api
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
-cp .env.example .env
-alembic upgrade head
-uvicorn aimn_api.main:app --reload --app-dir src
-```
-
-Set owner email, a PBKDF2 password hash, a random session signing secret (at least 32 characters), and database URL in local environment variables. Never commit credentials.
-
-### AIMN worker
-
-In a second terminal:
+1. Copy `.env.example` to `.env`.
+2. Set a strong database password, owner email and random session secret.
+3. Generate `AIMN_OWNER_PASSWORD_HASH` using the secure instructions in [apps/api/README.md](apps/api/README.md).
+4. Start the stack:
 
 ```bash
-cd apps/api
-python -m aimn_api.worker --poll-seconds 3
+docker compose up --build -d
+docker compose ps
 ```
 
-Create a network and an internal task using agent ID `ceo` from the dashboard or API. The worker creates five specialist planning tasks and aggregates their outputs. Current handlers are deterministic templates; no LLM or live research is connected.
+Open the dashboard at http://localhost:3000. The API health endpoint is http://localhost:8000/health/ready. The API container applies Alembic migrations before starting; the worker starts after the API is healthy.
 
-### ORBIT production toolkit
+To inspect logs:
+
+```bash
+docker compose logs -f api worker web
+```
+
+To stop the stack:
+
+```bash
+docker compose down
+```
+
+To remove local database data too, use `docker compose down -v` (this permanently deletes the local database volume).
+
+The Compose configuration sets the session cookie to non-secure for local HTTP only. A real HTTPS deployment must use secure cookies, a trusted origin, managed secrets, backups and an appropriate reverse proxy. Do not expose the development stack directly to the public internet.
+
+## AIMN worker behavior
+
+Create a network and an internal task with agent ID `ceo` from the dashboard or API. The worker creates five specialist planning tasks and aggregates their outputs. Current handlers are deterministic templates; no LLM or live research is connected. External-action tasks are never dispatched by the worker.
+
+## ORBIT production toolkit
 
 Install from the repository root:
 

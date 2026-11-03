@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: aimn
       POSTGRES_USER: aimn
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
@@ -14,19 +14,57 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://aimn:${POSTGRES_PASSWORD}@postgres:5432/aimn
+      AIMN_OWNER_EMAIL: ${AIMN_OWNER_EMAIL:?Set AIMN_OWNER_EMAIL in .env}
+      AIMN_OWNER_PASSWORD_HASH: ${AIMN_OWNER_PASSWORD_HASH:?Generate password hash}
+      AIMN_SESSION_SECRET: ${AIMN_SESSION_SECRET:?Set a random session secret}
+      AIMN_SESSION_TTL_SECONDS: ${AIMN_SESSION_TTL_SECONDS:-43200}
+      AIMN_SESSION_COOKIE_SECURE: "false"
+      AIMN_WEB_ORIGIN: http://localhost:3000
     ports:
-      - "6379:6379"
-    volumes:
-      - aimn_redis_data:/data
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 10s
+      timeout: 4s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["python", "-m", "aimn_api.worker", "--poll-seconds", "3"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://aimn:${POSTGRES_PASSWORD}@postgres:5432/aimn
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_AIMN_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   aimn_postgres_data:
-  aimn_redis_data:
