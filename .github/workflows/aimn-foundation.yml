@@ -6,11 +6,19 @@ on:
     paths:
       - "apps/api/**"
       - "apps/web/**"
+      - "docker-compose.yml"
+      - ".env.example"
+      - ".dockerignore"
+      - "README.md"
       - ".github/workflows/aimn-foundation.yml"
   pull_request:
     paths:
       - "apps/api/**"
       - "apps/web/**"
+      - "docker-compose.yml"
+      - ".env.example"
+      - ".dockerignore"
+      - "README.md"
       - ".github/workflows/aimn-foundation.yml"
 
 permissions:
@@ -47,3 +55,19 @@ jobs:
           cache-dependency-path: apps/web/package.json
       - run: npm install
       - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only-postgres-password
+      AIMN_OWNER_EMAIL: owner@example.test
+      AIMN_OWNER_PASSWORD_HASH: ci-placeholder-hash
+      AIMN_SESSION_SECRET: ci-only-secret-that-is-longer-than-32-characters
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t aimn-api:ci .
+      - name: Build dashboard image
+        run: docker build -f apps/web/Dockerfile --build-arg NEXT_PUBLIC_AIMN_API_URL=http://localhost:8000 -t aimn-web:ci .
