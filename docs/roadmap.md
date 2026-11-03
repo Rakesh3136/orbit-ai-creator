@@ -14,18 +14,21 @@
 - [x] Temporary fail-closed API-key bootstrap guard.
 - [x] Tests for API-key protection, channel creation, validation, updates and network scoping.
 - [ ] Verify CI and migration against PostgreSQL.
-- [ ] Connect the web dashboard to the API and add owner sign-in UI.
 
 ## Milestone 3 — Owner identity and secure integrations
 - [x] Owner sign-in and signed HttpOnly session management (single owner; no RBAC yet).
+- [x] Dashboard owner sign-in UI and cookie-based API client.
+- [x] Dashboard reads networks, channels, agent catalogue, tasks and pending approvals.
+- [x] Dashboard can create networks, channel profiles and internal agent tasks.
 - [ ] RBAC and per-network/channel authorization.
+- [ ] Server-side session revocation and CSRF hardening.
 - [ ] Secret manager adapter and encrypted OAuth credential storage.
 - [ ] Google OAuth connect/disconnect and scope display.
 - [ ] YouTube channel identity verification.
 
 ## Milestone 4 — Agent and task runtime
-- [ ] Agent registry, versions, skills and tool permissions.
-- [ ] Durable task and workflow records.
+- [x] Initial agent catalogue and task/approval API records.
+- [ ] Versioned agent registry, skills and tool permissions.
 - [ ] Worker process and queue.
 - [ ] CEO orchestration and typed agent handoffs.
 - [ ] Agent activity stream and cost accounting.
