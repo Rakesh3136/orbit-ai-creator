@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 from orbit.agents.ideas import IdeaAgent
 from orbit.agents.research import ResearchAgent
@@ -26,9 +27,13 @@ class CreatorPipeline:
         self,
         memory: MemoryStore | None = None,
         learning_memory: LearningMemory | None = None,
+        network_id: str | None = None,
+        channel_id: str | None = None,
     ) -> None:
         self.memory = memory or MemoryStore()
         self.learning_memory = learning_memory or LearningMemory()
+        self.network_id = network_id or os.getenv("ORBIT_NETWORK_ID", "default")
+        self.channel_id = channel_id if channel_id is not None else os.getenv("ORBIT_CHANNEL_ID", "")
         self.research = ResearchAgent()
         self.ideas = IdeaAgent()
         self.writer = ScriptWriterAgent()
@@ -64,7 +69,7 @@ class CreatorPipeline:
 
     def run(self, topic: str, title: str | None = None) -> PipelineResult:
         # Only explicitly recorded human feedback is returned as a lesson.
-        lessons = tuple(self.learning_memory.lessons("scriptwriter", "script"))
+        lessons = tuple(self.learning_memory.lessons("scriptwriter", "script", network_id=self.network_id, channel_id=self.channel_id))
         results = self.research.search(topic, limit=8)
         brief = self.research.build_brief(topic, results)
         script = self.writer.write(brief, title=title, lessons=list(lessons))
@@ -97,7 +102,10 @@ class CreatorPipeline:
                 },
                 feedback="",
                 approved=False,
-            )
+            ),
+            network_id=self.network_id,
+            channel_id=self.channel_id,
+            provenance="creator-pipeline:heuristic-quality-v1",
         )
         return PipelineResult(
             topic=topic,
