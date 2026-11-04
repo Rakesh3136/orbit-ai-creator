@@ -127,6 +127,22 @@ class LearningMemory:
             rows = db.execute("SELECT id, agent, task_type, overall, passed, scores_json, feedback, created_at FROM experiences" + where + " ORDER BY id DESC LIMIT ?", (*params, limit)).fetchall()
         return [Experience(row["id"], row["agent"], row["task_type"], row["overall"], bool(row["passed"]), json.loads(row["scores_json"]), row["feedback"], row["created_at"]) for row in rows]
 
+    def review_queue(self, limit: int = 50, include_reviewed: bool = False) -> list[Experience]:
+        """Return recent evaluations, excluding reviewed items unless requested."""
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        query = """SELECT e.id, e.agent, e.task_type, e.overall, e.passed,
+                   e.scores_json, e.feedback, e.created_at
+                   FROM experiences e"""
+        if not include_reviewed:
+            query += " WHERE NOT EXISTS (SELECT 1 FROM human_reviews r WHERE r.evaluation_id = e.id)"
+        query += " ORDER BY e.id DESC LIMIT ?"
+        with self._connect() as db:
+            rows = db.execute(query, (limit,)).fetchall()
+        return [Experience(row["id"], row["agent"], row["task_type"], row["overall"],
+                           bool(row["passed"]), json.loads(row["scores_json"]),
+                           row["feedback"], row["created_at"]) for row in rows]
+
     def performance(self, agent: str, task_type: str | None = None) -> dict[str, float | int]:
         clauses, params = ["agent = ?"], [agent]
         if task_type is not None:
