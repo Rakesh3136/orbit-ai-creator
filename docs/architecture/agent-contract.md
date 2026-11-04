@@ -6,29 +6,29 @@ Agents are specialized, observable workers coordinated by the AI CEO/orchestrato
 
 ## Required definition
 
-Each agent definition must include:
+Each agent definition has a stable skill ID, semantic skill version and registry version. The initial registry is deliberately zero-budget: every profile has no enabled tools, a maximum paid-provider budget of USD 0, and no external-write permission. A profile must not advertise a capability until its implementation and tests exist.
+
+The current registry record is equivalent to:
 
 ```yaml
-name: research.topic_discovery
-version: 1
-description: Discover and evaluate topic opportunities for one channel.
-input_schema: ResearchRequest
-output_schema: ResearchReport
-tools:
-  - approved_search_provider
-  - youtube_data_api.readonly
+registry_version: 1.0.0
+skill_id: research.topic_discovery
+skill_version: 1.0.0
+name: Research & Intelligence
+description: Build research questions, source plans and evidence-backed briefs.
+execution_mode: local_planning_only
+allowed_tools: []
 memory_scope:
-  read: [network_strategy, channel_strategy, prior_research]
-  write: [research_reports]
+  read: [task_input]
+  write: [task_result]
 side_effects: []
 limits:
-  timeout_seconds: 180
-  max_retries: 2
-  max_cost_usd: 0
+  max_paid_provider_cost_usd: 0
 permissions:
-  channel_scope: assigned_channel_only
   external_writes: false
 ```
+
+The API exposes the registry at `GET /api/v1/agents`. Every local planning result stores its registry and skill versions so later evaluations can identify which skill definition produced an artifact. This version stamp is not evidence that a model was fine-tuned or learned from feedback.
 
 ## Agent lifecycle
 

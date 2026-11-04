@@ -30,6 +30,11 @@ def test_worker_completes_internal_task_with_transparent_plan():
             assert task.result["mode"]=="local_planning_only"
             assert task.result["deliverable"]=="research_brief"
             assert task.result["provider_connected"] is False
+            assert task.result["registry_version"] == "1.0.0"
+            assert task.result["skill_version"] == "1.0.0"
+            assert task.result["allowed_tools"] == []
+            assert task.result["external_writes"] is False
+            assert task.result["paid_provider_used"] is False
             assert task.error is None
     finally: engine.dispose()
 
@@ -75,4 +80,9 @@ def test_ceo_creates_bounded_specialist_tasks_and_aggregates_results():
             assert root.result["status"]=="completed"
             assert len(root.result["specialist_results"])==5
             assert root.result["provider_connected"] is False
+            assert root.result["registry_version"] == "1.0.0"
+            assert root.result["skill_id"] == "executive.workflow_orchestration"
+            assert root.result["skill_version"] == "1.0.0"
+            assert root.result["external_writes"] is False
+            assert root.result["max_paid_provider_cost_usd"] == 0
     finally: engine.dispose()

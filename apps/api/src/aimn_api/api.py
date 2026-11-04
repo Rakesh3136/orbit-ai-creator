@@ -6,6 +6,7 @@ from aimn_api.db import get_db
 from aimn_api.models import AgentTask, Approval, Channel, Network
 from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead
 from aimn_api.security import require_owner_or_api_key
+from aimn_api.agent_registry import get_agent, list_agent_records
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_owner_or_api_key)])
 
@@ -113,18 +114,6 @@ def update_channel(network_id: uuid.UUID, channel_id: uuid.UUID, payload: Channe
     return channel_out(item)
 
 
-AGENTS = [
-    {"id": "ceo", "name": "AI CEO / Orchestrator", "department": "Executive", "description": "Breaks a creator objective into a bounded specialist workflow and combines the results."},
-    {"id": "research", "name": "Research & Intelligence", "department": "Research", "description": "Find trends, audience questions, source material and evidence."},
-    {"id": "strategist", "name": "Channel Strategist", "department": "Strategy", "description": "Turn channel goals and research into a differentiated growth plan."},
-    {"id": "writer", "name": "Editorial & Scriptwriter", "department": "Editorial", "description": "Draft original scripts, hooks, titles and descriptions."},
-    {"id": "fact-checker", "name": "Fact Checker", "department": "Quality", "description": "Check claims, source quality, uncertainty and originality risks."},
-    {"id": "producer", "name": "Creative Producer", "department": "Production", "description": "Prepare shot lists, visual plans, narration and edit specifications."},
-    {"id": "growth-analyst", "name": "Growth Analyst", "department": "Growth", "description": "Interpret performance data and propose measurable experiments."},
-    {"id": "community", "name": "Community Manager", "department": "Community", "description": "Draft helpful comment replies for owner review."},
-    {"id": "publisher", "name": "Publishing Manager", "department": "Publishing", "description": "Prepare metadata and publishing checklists; external publishing requires approval."},
-]
-AGENT_IDS = {agent["id"] for agent in AGENTS}
 
 def task_out(item: AgentTask) -> TaskRead:
     return TaskRead(
@@ -143,12 +132,12 @@ def approval_out(item: Approval) -> ApprovalRead:
 
 @router.get("/agents")
 def list_agents():
-    return AGENTS
+    return list_agent_records()
 
 @router.post("/networks/{network_id}/tasks", response_model=TaskRead, status_code=201)
 def create_task(network_id: uuid.UUID, payload: TaskCreate, db: Session = Depends(get_db)):
     get_active_network(db, network_id)
-    if payload.agent_id not in AGENT_IDS:
+    if get_agent(payload.agent_id) is None:
         raise HTTPException(status_code=422, detail="Unknown agent_id")
     if payload.channel_id:
         channel = db.query(Channel).filter(

@@ -16,12 +16,14 @@
 
 ## Milestone 3 — Owner identity and secure integrations
 - [x] Owner sign-in and signed HttpOnly session management (single owner; no RBAC yet).
+- [x] Owner login, logout, cookie attributes, signature tampering and dashboard API access tests.
 - [x] Dashboard owner sign-in UI and cookie-based API client.
 - [x] Dashboard reads networks, channels, agent catalogue, tasks and pending approvals.
 - [x] Dashboard can create networks, channel profiles and internal agent tasks.
 - [ ] RBAC and per-network/channel authorization.
-- [ ] Server-side session revocation and CSRF hardening.
-- [ ] Secret manager adapter and persisted encrypted OAuth credential records.\n- [x] Versioned authenticated-encryption helper for credential payloads (persistence and OAuth lifecycle remain open).
+- [ ] Server-side session revocation, login rate limiting and additional CSRF hardening.
+- [ ] Secret manager adapter and persisted encrypted OAuth credential records.
+- [x] Versioned authenticated-encryption helper for credential payloads (persistence and OAuth lifecycle remain open).
 - [ ] Google OAuth connect/disconnect and scope display.
 - [ ] YouTube channel identity verification.
 
@@ -29,9 +31,11 @@
 - [x] Initial agent catalogue and task/approval API records.
 - [x] Local deterministic worker for specialist planning tasks.
 - [x] Bounded AI CEO workflow with five specialist child tasks and result aggregation (deterministic mode).
-- [ ] Versioned agent registry, skills and tool permissions.
+- [x] Versioned agent/skill registry; planning results record the skill version used.
+- [x] Initial registry denies paid-provider spend, tool access and external writes by default.
 - [ ] Worker leases, stale-task recovery, retries and heartbeat.
-- [ ] LLM provider adapters and budget/rate limits.
+- [ ] Evaluated local feedback/memory loop (not model fine-tuning yet).
+- [ ] LLM provider adapters and budget/rate limits (only if a genuinely useful free/local model is selected).
 - [ ] Agent activity stream, audit trail and cost accounting.
 
 ## Milestone 5 — Research and content intelligence

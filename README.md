@@ -6,8 +6,10 @@ AIMN is the multi-agent control plane and command center for building and operat
 
 Implemented:
 - FastAPI control plane, SQLAlchemy models and Alembic migrations.
-- Single-owner sign-in with signed HttpOnly sessions.
+- Single-owner sign-in with signed HttpOnly sessions and API-level cookie authentication.
 - Next.js dashboard for networks, channel profiles, agents, tasks and approvals.
+- Versioned agent/skill registry; each planning result records the registry and skill versions used.
+- Zero-paid-provider baseline: no agent tools are enabled, paid-provider budget is USD 0, and external writes are denied.
 - Local deterministic specialist worker.
 - Bounded CEO workflow: research → strategy → writing → fact-checking → production.
 - Parent/child task tracking and result aggregation.
@@ -18,6 +20,7 @@ Implemented:
 Not yet production-complete:
 - Live AI provider integration and real CEO reasoning.
 - Live research and source verification.
+- An evaluated feedback/memory loop; the current registry is versioned workflow configuration, not model fine-tuning or autonomous self-training.
 - AIMN-to-ORBIT production handoff.
 - Secure server-side OAuth connection and encrypted refresh-token storage.
 - YouTube channel identity sync and Analytics integration in AIMN.
@@ -85,7 +88,7 @@ The Compose configuration sets the session cookie to non-secure for local HTTP o
 
 ## AIMN worker behavior
 
-Create a network and an internal task with agent ID `ceo` from the dashboard or API. The worker creates five specialist planning tasks and aggregates their outputs. Current handlers are deterministic templates; no LLM or live research is connected. External-action tasks are never dispatched by the worker.
+Create a network and an internal task with agent ID `ceo` from the dashboard or API. The worker creates five specialist planning tasks and aggregates their outputs. Current handlers are deterministic templates; no LLM or live research is connected. Each result records the registry and skill versions used, plus the currently denied tools/write permissions and zero paid-provider allowance. This is a reproducible skill-configuration foundation, not model training. External-action tasks are never dispatched by the worker.
 
 ## ORBIT production toolkit
 

@@ -6,7 +6,7 @@ import { Activity, Bot, CheckCircle2, Command, LogOut, Plus, RefreshCw, ShieldCh
 const API = (process.env.NEXT_PUBLIC_AIMN_API_URL || "http://localhost:8000").replace(/\/$/, "");
 type Network = { id: string; name: string; default_locale: string; status: string };
 type Channel = { id: string; name: string; slug: string; niche?: string | null; status: string; connected: boolean };
-type Agent = { id: string; name: string; department: string; description: string };
+type Agent = { id: string; name: string; department: string; description: string; skill_id: string; skill_version: string; registry_version: string; execution_mode: string; max_paid_provider_cost_usd: number; external_writes: boolean };
 type Task = { id: string; title: string; agent_id: string; parent_task_id?: string | null; status: string; external_action: boolean };
 type Approval = { id: string; task_id: string; status: string; decision_note?: string | null };
 
@@ -195,7 +195,7 @@ export default function Home() {
               {networkId && <form className="stack-form" onSubmit={createChannel}><input placeholder="Channel name" value={channelName} onChange={(e) => setChannelName(e.target.value)} required minLength={2} /><input placeholder="Niche (optional)" value={channelNiche} onChange={(e) => setChannelNiche(e.target.value)} /><button className="secondary-button" disabled={busy}><Plus size={14} /> Add channel profile</button></form>}
             </section>
             <section className="panel"><div className="section-heading"><div><h2>Agent workforce</h2><p>Available specialist roles.</p></div></div>
-              <div className="data-list">{agents.map((a) => <div className="data-row" key={a.id}><div><b>{a.name}</b><small>{a.description}</small></div><span className="tag">{a.id === "ceo" ? "ORCHESTRATOR" : "LOCAL PLAN"}</span></div>)}</div>
+              <div className="data-list">{agents.map((a) => <div className="data-row" key={a.id}><div><b>{a.name}</b><small>{a.description} · Skill {a.skill_version}</small></div><span className="tag">{a.id === "ceo" ? "ORCHESTRATOR" : "LOCAL PLAN"}</span></div>)}</div>
             </section>
           </div>
           <div className="columns">

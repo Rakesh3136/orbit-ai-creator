@@ -9,11 +9,29 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from aimn_api.models import AgentTask
+from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
 
 def _brief(task: AgentTask, kind: str, steps: list[str], caution: str) -> dict[str, Any]:
-    return {"mode":"local_planning_only","agent_id":task.agent_id,"deliverable":kind,
-            "task":task.title,"brief":task.instruction,"steps":steps,
-            "cautions":[caution],"provider_connected":False}
+    definition = get_agent(task.agent_id)
+    if definition is None:
+        raise ValueError(f"No agent definition registered for '{task.agent_id}'")
+    return {
+        "mode": definition.execution_mode,
+        "agent_id": task.agent_id,
+        "registry_version": REGISTRY_VERSION,
+        "skill_id": definition.skill_id,
+        "skill_version": definition.skill_version,
+        "allowed_tools": list(definition.allowed_tools),
+        "external_writes": definition.external_writes,
+        "max_paid_provider_cost_usd": definition.max_paid_provider_cost_usd,
+        "paid_provider_used": False,
+        "deliverable": kind,
+        "task": task.title,
+        "brief": task.instruction,
+        "steps": steps,
+        "cautions": [caution],
+        "provider_connected": False,
+    }
 
 def research(t):
     return _brief(t,"research_brief",["Break the request into research questions.","Identify primary and authoritative sources to consult.","Record each claim with source URL, date and confidence.","Separate verified facts from assumptions and open questions.","Prepare an evidence-backed summary."],"No live web search was performed.")
@@ -54,6 +72,9 @@ MAX_CEO_CHILDREN = 5
 
 def _orchestrate(db: Session, task: AgentTask) -> None:
     """Create a fixed, bounded specialist workflow; never dispatch external actions."""
+    definition = get_agent(task.agent_id)
+    if definition is None:
+        raise ValueError(f"No agent definition registered for '{task.agent_id}'")
     children = []
     for agent_id, label in CEO_STEPS[:MAX_CEO_CHILDREN]:
         child = AgentTask(
@@ -68,6 +89,13 @@ def _orchestrate(db: Session, task: AgentTask) -> None:
     db.flush()
     task.result = {
         "mode":"local_ceo_orchestration",
+        "registry_version":REGISTRY_VERSION,
+        "skill_id":definition.skill_id,
+        "skill_version":definition.skill_version,
+        "agent_versions":[{"agent_id":agent_id,"skill_id":get_agent(agent_id).skill_id,"skill_version":get_agent(agent_id).skill_version} for agent_id, _ in CEO_STEPS[:MAX_CEO_CHILDREN]],
+        "external_writes":False,
+        "max_paid_provider_cost_usd":0.0,
+        "paid_provider_used":False,
         "provider_connected":False,
         "workflow":"research_strategy_editorial_production",
         "child_task_ids":[str(child.id) for child in children],

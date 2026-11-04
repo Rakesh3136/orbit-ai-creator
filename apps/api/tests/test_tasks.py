@@ -85,3 +85,18 @@ def test_unknown_agent_and_cross_network_channel_are_rejected(client, auth_heade
         json={"channel_id": channel["id"], "agent_id": "research", "title": "Foreign channel", "instruction": "This should fail."},
     )
     assert foreign.status_code == 404
+
+
+
+def test_agent_catalogue_exposes_versioned_zero_paid_provider_profiles(client, auth_headers):
+    response = client.get("/api/v1/agents", headers=auth_headers)
+    assert response.status_code == 200
+    agents = response.json()
+    assert len(agents) == 9
+    assert all(agent["registry_version"] == "1.0.0" for agent in agents)
+    assert all(agent["skill_version"] == "1.0.0" for agent in agents)
+    assert all(agent["execution_mode"] == "local_planning_only" for agent in agents)
+    assert all(agent["allowed_tools"] == [] for agent in agents)
+    assert all(agent["external_writes"] is False for agent in agents)
+    assert all(agent["max_paid_provider_cost_usd"] == 0 for agent in agents)
+    assert len({agent["skill_id"] for agent in agents}) == len(agents)
