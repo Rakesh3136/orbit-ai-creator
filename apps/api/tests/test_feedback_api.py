@@ -1,3 +1,4 @@
+import uuid
 from aimn_api.main import app
 from aimn_api.db import get_db
 from aimn_api.models import AgentTask
@@ -8,7 +9,7 @@ def _complete_task(task_id):
     generator = app.dependency_overrides[get_db]()
     db = next(generator)
     try:
-        task = db.get(AgentTask, task_id)
+        task = db.get(AgentTask, uuid.UUID(task_id))
         task.status = "completed"
         task.result = {"skill_version": "1.0.0", "registry_version": "1.0.0"}
         db.commit()
