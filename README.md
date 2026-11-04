@@ -119,3 +119,17 @@ GitHub Actions runs backend tests, frontend production build, and a deterministi
 ## Agent feedback and lesson memory
 
 See [the feedback and memory guide](docs/agent-feedback-memory.md). Owners can rate completed internal task outputs, record corrections, and propose reusable lessons. Proposed lessons are pending until explicitly approved. Approved lessons are retrieved with network/channel scoping and skill-version provenance. This is local retrieval, not model fine-tuning.
+
+
+## Install AIMN on Android
+
+AIMN is being delivered as an installable Progressive Web App (PWA), so it opens in its own app window with an AIMN icon and does not require Play Store publication. The site must be reachable over HTTPS for full PWA installation.
+
+1. Open the deployed AIMN HTTPS address in Chrome on Android.
+2. Sign in to your owner account.
+3. Tap Install app in the AIMN top bar when Chrome offers it, or open Chrome's three-dot menu and choose Install app / Add to Home screen.
+4. Confirm. AIMN will appear as an app icon and open separately from the browser tab.
+
+For local Docker testing on a computer, open http://localhost:3000 on that computer. To test from a phone on the same Wi-Fi, use the computer's LAN IP (for example, http://192.168.x.x:3000); that HTTP address is for testing and is not sufficient for full PWA installation. Do not expose the development Compose stack directly to the public internet.
+
+The web container now proxies /api/* requests to the private API container. The browser no longer calls localhost:8000, which would incorrectly mean the Android phone itself when AIMN is opened on a phone. For a public HTTPS deployment, set AIMN_SESSION_COOKIE_SECURE=true and set the correct AIMN_WEB_ORIGIN in the deployment environment.

@@ -21,6 +21,9 @@
 - [x] Dashboard reads networks, channels, agent catalogue, tasks and pending approvals.
 - [x] Dashboard can create networks, channel profiles and internal agent tasks.
 - [ ] RBAC and per-network/channel authorization.
+- [x] PWA manifest, app icon, service-worker registration and Android install entry point.
+- [x] Same-origin API proxy so Android clients do not call their own localhost.
+- [ ] HTTPS production hosting and Android device install verification.
 - [ ] Server-side session revocation, login rate limiting and additional CSRF hardening.
 - [ ] Secret manager adapter and persisted encrypted OAuth credential records.
 - [x] Versioned authenticated-encryption helper for credential payloads (persistence and OAuth lifecycle remain open).

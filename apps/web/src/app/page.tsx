@@ -2,8 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Activity, Bot, CheckCircle2, Command, LogOut, Plus, RefreshCw, ShieldCheck, Youtube } from "lucide-react";
+import { PwaInstallButton } from "./pwa-install";
 
-const API = (process.env.NEXT_PUBLIC_AIMN_API_URL || "http://localhost:8000").replace(/\/$/, "");
+const API = "";
 type Network = { id: string; name: string; default_locale: string; status: string };
 type Channel = { id: string; name: string; slug: string; niche?: string | null; status: string; connected: boolean };
 type Agent = { id: string; name: string; department: string; description: string; skill_id: string; skill_version: string; registry_version: string; execution_mode: string; max_paid_provider_cost_usd: number; external_writes: boolean };
@@ -211,7 +212,7 @@ export default function Home() {
         <div className="side-owner"><span className="avatar">O</span><div><b>{owner}</b><small>Network owner</small></div><button onClick={logout} title="Sign out"><LogOut size={16} /></button></div>
       </aside>
       <section className="workspace">
-        <header className="topbar"><span>Workspace / <b>Command center</b></span><button className="refresh-button" onClick={() => run(() => refresh())} disabled={busy}><RefreshCw size={15} /> Refresh</button></header>
+        <header className="topbar"><span>Workspace / <b>Command center</b></span><div className="topbar-actions"><PwaInstallButton /><button className="refresh-button" onClick={() => run(() => refresh())} disabled={busy}><RefreshCw size={15} /> Refresh</button></div></header>
         <div className="page">
           <div className="page-title"><div><p className="eyebrow">YOUR AI-OPERATED MEDIA BUSINESS</p><h1>Command center</h1><p>Live data from your AIMN backend. External actions remain approval-gated.</p></div></div>
           {error && <div className="alert error-message">{error}</div>}

@@ -26,8 +26,8 @@ services:
       AIMN_OWNER_PASSWORD_HASH: ${AIMN_OWNER_PASSWORD_HASH:?Generate password hash}
       AIMN_SESSION_SECRET: ${AIMN_SESSION_SECRET:?Set a random session secret}
       AIMN_SESSION_TTL_SECONDS: ${AIMN_SESSION_TTL_SECONDS:-43200}
-      AIMN_SESSION_COOKIE_SECURE: "false"
-      AIMN_WEB_ORIGIN: http://localhost:3000
+      AIMN_SESSION_COOKIE_SECURE: ${AIMN_SESSION_COOKIE_SECURE:-false}
+      AIMN_WEB_ORIGIN: ${AIMN_WEB_ORIGIN:-http://localhost:3000}
     ports:
       - "8000:8000"
     depends_on:
@@ -58,7 +58,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_AIMN_API_URL: http://localhost:8000
+        AIMN_INTERNAL_API_URL: http://api:8000
     ports:
       - "3000:3000"
     depends_on:
