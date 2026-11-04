@@ -30,6 +30,7 @@ def test_memory_persists_and_filters_experiences(tmp_path: Path) -> None:
         "scriptwriter", "script", {"clarity": 95}, approved=True,
     )
     first_id = memory.record(first)
+    memory.submit_review(first_id, 4, lesson="Prefer primary sources.", approve_lesson=True)
     memory.record(second)
 
     assert first_id == 1
