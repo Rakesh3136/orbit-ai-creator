@@ -104,6 +104,19 @@ On PowerShell use `$env:ORBIT_LLM_PROVIDER` and `$env:ORBIT_OLLAMA_MODEL` instea
 
 If the local model is unavailable or returns malformed output, ORBIT falls back to its deterministic writer so CI remains reproducible.
 
+## Owner feedback and learning control centre
+
+Every generated script receives a local evaluation ID. Review outputs on the same machine that generated them:
+
+```bash
+orbit-feedback pending
+orbit-feedback review 1 --rating 4 --correction "The opening needs a stronger concrete example." --lesson "Open with a specific, sourced example." --scope network --scope-id default --approve-lesson
+orbit-feedback performance scriptwriter --task-type script
+orbit-feedback reviews
+```
+
+A lesson is never reused just because it was written in feedback: it must be explicitly approved with `--approve-lesson`. Network lessons apply only to the matching `ORBIT_NETWORK_ID`; channel lessons apply only to the matching `ORBIT_CHANNEL_ID`. Set those environment variables before running ORBIT when separating brands/channels. Reviews retain owner-entered provenance. This is persistent local feedback memory, not model fine-tuning; local Ollama script prompts can use approved lessons.
+
 ## YouTube connection
 
 Install the optional integration:
