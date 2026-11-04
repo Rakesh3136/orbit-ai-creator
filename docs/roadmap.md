@@ -21,7 +21,7 @@
 - [x] Dashboard can create networks, channel profiles and internal agent tasks.
 - [ ] RBAC and per-network/channel authorization.
 - [ ] Server-side session revocation and CSRF hardening.
-- [ ] Secret manager adapter and encrypted OAuth credential storage.
+- [ ] Secret manager adapter and persisted encrypted OAuth credential records.\n- [x] Versioned authenticated-encryption helper for credential payloads (persistence and OAuth lifecycle remain open).
 - [ ] Google OAuth connect/disconnect and scope display.
 - [ ] YouTube channel identity verification.
 

@@ -13,7 +13,13 @@ cp .env.example .env
 uvicorn aimn_api.main:app --reload --app-dir src
 ```
 
-Configure `DATABASE_URL`, owner credentials and a long random `AIMN_SESSION_SECRET` in your local environment or deployment secret store. Never commit secrets or put the machine API key in browser code.
+Configure `DATABASE_URL`, owner credentials, a long random `AIMN_SESSION_SECRET`, and `AIMN_CREDENTIAL_ENCRYPTION_KEY` in your local environment or deployment secret store. Generate the encryption key with:
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Keep the encryption key separate from the database and ciphertext backups. Never commit secrets or put the machine API key in browser code.
 
 ## Current control-plane endpoints
 
@@ -45,5 +51,9 @@ The worker runs deterministic planning handlers. It does not call an LLM, perfor
 ## AI CEO orchestration (current local mode)
 
 Create an internal task with `agent_id: "ceo"`. The CEO creates at most five child tasks in this fixed workflow: research, strategist, writer, fact-checker and producer. Child tasks carry `parent_task_id`; once all are terminal, the CEO task aggregates their results. This is bounded deterministic orchestration, not yet an LLM-powered executive agent.
+
+## Credential vault status
+
+The API now includes authenticated encryption helpers for JSON credential payloads. The ciphertext envelope is versioned and authenticated; a missing or incorrect key fails closed. Configure `AIMN_CREDENTIAL_ENCRYPTION_KEY` outside source control. This is the cryptographic foundation only: database persistence, Google OAuth callback handling, token refresh, disconnect/revocation and channel linking are not yet enabled.
 
 Publishing, comment replies and other external actions remain disabled in the worker, regardless of approval state. Real integrations require separate provider adapters, credential handling, action-specific approval checks and integration tests.

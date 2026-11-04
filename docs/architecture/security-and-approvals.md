@@ -16,7 +16,8 @@ Use server-side RBAC plus channel-level access checks. Do not rely on hidden fro
 ## Secrets and OAuth
 
 - Never commit client secrets, access tokens, refresh tokens, cookies, or provider API keys.
-- Store secrets in a secret manager or encrypted credential store; database rows hold references and metadata.
+- Store secrets in a secret manager or authenticated encrypted credential store; database rows hold references and non-secret metadata only.
+- The AIMN API has versioned Fernet encryption helpers. Configure `AIMN_CREDENTIAL_ENCRYPTION_KEY` in a deployment secret store, separate from database backups. Rotation and persisted credential records remain to be implemented.
 - Encrypt tokens at rest and in transit; restrict decryption to the integration service.
 - Request only necessary OAuth scopes and show them to the owner.
 - Support disconnect, token revocation, and credential rotation.
