@@ -23,6 +23,7 @@ orbit = "orbit.main:main"
 orbit-doctor = "orbit.doctor:main"
 orbit-connect-youtube = "orbit.youtube.connect:main"
 orbit-feedback = "orbit.learning.cli:main"
+orbit-dashboard = "orbit.learning.dashboard:main"
 
 [tool.setuptools.packages.find]
 include = ["orbit*"]
