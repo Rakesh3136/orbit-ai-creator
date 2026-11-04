@@ -6,6 +6,7 @@ from orbit.agents.ideas import IdeaAgent
 from orbit.agents.research import ResearchAgent
 from orbit.agents.scriptwriter import ScriptWriterAgent
 from orbit.agents.quality import QualityAgent
+from orbit.learning.feedback import LearningMemory, TaskEvaluation
 from orbit.memory import MemoryStore
 from orbit.models import Idea, QualityReport, ResearchBrief, Script
 
@@ -16,11 +17,18 @@ class PipelineResult:
     brief: ResearchBrief
     script: Script
     quality: QualityReport
+    lessons_considered: tuple[str, ...] = ()
+    evaluation_id: int | None = None
 
 
 class CreatorPipeline:
-    def __init__(self, memory: MemoryStore | None = None) -> None:
+    def __init__(
+        self,
+        memory: MemoryStore | None = None,
+        learning_memory: LearningMemory | None = None,
+    ) -> None:
         self.memory = memory or MemoryStore()
+        self.learning_memory = learning_memory or LearningMemory()
         self.research = ResearchAgent()
         self.ideas = IdeaAgent()
         self.writer = ScriptWriterAgent()
@@ -55,9 +63,11 @@ class CreatorPipeline:
         return self.ideas.rank(ideas, minimum=60)
 
     def run(self, topic: str, title: str | None = None) -> PipelineResult:
+        # Only explicitly recorded human feedback is returned as a lesson.
+        lessons = tuple(self.learning_memory.lessons("scriptwriter", "script"))
         results = self.research.search(topic, limit=8)
         brief = self.research.build_brief(topic, results)
-        script = self.writer.write(brief, title=title)
+        script = self.writer.write(brief, title=title, lessons=list(lessons))
         self.memory.remember("research", brief.summary)
         self.memory.remember("script", script.title)
 
@@ -71,4 +81,29 @@ class CreatorPipeline:
             report.notes.append("No research results. Publishing is blocked.")
         if any(c.confidence == "low" for c in brief.claims):
             report.notes.append("Research claims are provisional; primary-source verification is required.")
-        return PipelineResult(topic=topic, brief=brief, script=script, quality=report)
+
+        # This is an unapproved evaluation: it records quality signals but never
+        # grants permission to publish or marks the work as human-approved.
+        evaluation_id = self.learning_memory.record(
+            TaskEvaluation(
+                agent="scriptwriter",
+                task_type="script",
+                scores={
+                    "content": content,
+                    "originality": originality,
+                    "factuality": factuality,
+                    "retention": retention,
+                    "compliance": compliance,
+                },
+                feedback="",
+                approved=False,
+            )
+        )
+        return PipelineResult(
+            topic=topic,
+            brief=brief,
+            script=script,
+            quality=report,
+            lessons_considered=lessons,
+            evaluation_id=evaluation_id,
+        )
