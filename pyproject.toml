@@ -22,6 +22,7 @@ youtube = [
 orbit = "orbit.main:main"
 orbit-doctor = "orbit.doctor:main"
 orbit-connect-youtube = "orbit.youtube.connect:main"
+orbit-feedback = "orbit.learning.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["orbit*"]
