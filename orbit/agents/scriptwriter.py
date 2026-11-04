@@ -38,9 +38,15 @@ class ScriptWriterAgent:
             claims=brief.claims,
         )
 
-    def _ollama(self, brief: ResearchBrief, title: str | None = None) -> Script:
+    def _ollama(
+        self,
+        brief: ResearchBrief,
+        title: str | None = None,
+        lessons: list[str] | None = None,
+    ) -> Script:
         if not self.model:
             raise RuntimeError("ORBIT_OLLAMA_MODEL must be set when ORBIT_LLM_PROVIDER=ollama")
+        lesson_section = "\n".join(f"- {lesson}" for lesson in (lessons or [])) or "- No prior human feedback recorded."
         prompt = f"""
 You are the lead documentary writer for ORBIT, a world-class but evidence-first YouTube channel.
 Topic: {brief.topic}
@@ -49,6 +55,9 @@ Research brief:
 
 Open questions:
 {chr(10).join('- ' + q for q in brief.open_questions)}
+
+Prior human feedback (use as guidance, never as factual evidence):
+{lesson_section}
 
 Write an original 8-12 minute documentary draft. Do not invent facts. Keep uncertainty explicit.
 Return EXACTLY these sections:
@@ -89,10 +98,15 @@ Make the hook specific and curiosity-driven. Use a strong narrative arc, not a l
             claims=brief.claims,
         )
 
-    def write(self, brief: ResearchBrief, title: str | None = None) -> Script:
+    def write(
+        self,
+        brief: ResearchBrief,
+        title: str | None = None,
+        lessons: list[str] | None = None,
+    ) -> Script:
         if self.provider == "ollama":
             try:
-                return self._ollama(brief, title=title)
+                return self._ollama(brief, title=title, lessons=lessons)
             except Exception:
                 # A local model is an enhancement, not a hard dependency for CI.
                 return self._deterministic(brief, title=title)
