@@ -205,15 +205,15 @@ export default function Home() {
       <aside className="side-nav">
         <div className="login-brand"><span><Command size={20} /></span><div><b>AIMN</b><small>MEDIA NETWORK OS</small></div></div>
         <p className="side-label">WORKSPACE</p>
-        <div className="side-link active"><Activity size={17} /> Overview</div>
-        <div className="side-link"><Youtube size={17} /> Channels</div>
-        <div className="side-link"><Bot size={17} /> Agent workforce</div>
-        <div className="side-link"><ShieldCheck size={17} /> Approvals <b className="count">{approvals.length}</b></div>
+        <a className="side-link active" href="#overview"><Activity size={17} /> Overview</a>
+        <a className="side-link" href="#channels"><Youtube size={17} /> Channels</a>
+        <a className="side-link" href="#agents"><Bot size={17} /> Agent workforce</a>
+        <a className="side-link" href="#approvals"><ShieldCheck size={17} /> Approvals <b className="count">{approvals.length}</b></a>
         <div className="side-owner"><span className="avatar">O</span><div><b>{owner}</b><small>Network owner</small></div><button onClick={logout} title="Sign out"><LogOut size={16} /></button></div>
       </aside>
       <section className="workspace">
         <header className="topbar"><span>Workspace / <b>Command center</b></span><div className="topbar-actions"><PwaInstallButton /><button className="refresh-button" onClick={() => run(() => refresh())} disabled={busy}><RefreshCw size={15} /> Refresh</button></div></header>
-        <div className="page">
+        <div className="page" id="overview">
           <div className="page-title"><div><p className="eyebrow">YOUR AI-OPERATED MEDIA BUSINESS</p><h1>Command center</h1><p>Live data from your AIMN backend. External actions remain approval-gated.</p></div></div>
           {error && <div className="alert error-message">{error}</div>}
           {notice && <div className="alert success-message">{notice}</div>}
@@ -229,11 +229,11 @@ export default function Home() {
               <form className="inline-form" onSubmit={createNetwork}><input value={networkName} onChange={(e) => setNetworkName(e.target.value)} aria-label="Network name" required minLength={2} /><button className="primary-button" disabled={busy}><Plus size={15} /> Create network</button></form>}
           </section>
           <div className="columns">
-            <section className="panel"><div className="section-heading"><div><h2>YouTube channels</h2><p>Channels in the selected network.</p></div></div>
+            <section className="panel" id="channels"><div className="section-heading"><div><h2>YouTube channels</h2><p>Channels in the selected network.</p></div></div>
               {channels.length ? <div className="data-list">{channels.map((c) => <div className="data-row" key={c.id}><div><b>{c.name}</b><small>{c.niche || c.slug}</small></div><span className={c.connected ? "tag connected" : "tag"}>{c.connected ? "CONNECTED" : c.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No channels yet. Add your first channel profile below.</p>}
               {networkId && <form className="stack-form" onSubmit={createChannel}><input placeholder="Channel name" value={channelName} onChange={(e) => setChannelName(e.target.value)} required minLength={2} /><input placeholder="Niche (optional)" value={channelNiche} onChange={(e) => setChannelNiche(e.target.value)} /><button className="secondary-button" disabled={busy}><Plus size={14} /> Add channel profile</button></form>}
             </section>
-            <section className="panel"><div className="section-heading"><div><h2>Agent workforce</h2><p>Available specialist roles.</p></div></div>
+            <section className="panel" id="agents"><div className="section-heading"><div><h2>Agent workforce</h2><p>Available specialist roles.</p></div></div>
               <div className="data-list">{agents.map((a) => <div className="data-row" key={a.id}><div><b>{a.name}</b><small>{a.description} · Skill {a.skill_version}</small></div><span className="tag">{a.id === "ceo" ? "ORCHESTRATOR" : "LOCAL PLAN"}</span></div>)}</div>
             </section>
           </div>
@@ -242,12 +242,12 @@ export default function Home() {
               {tasks.length ? <div className="data-list">{tasks.map((t) => <div className="data-row" key={t.id}><div><b>{t.title}</b><small>{t.agent_id}{t.parent_task_id ? " · specialist subtask" : ""}</small></div><span className="tag">{t.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No tasks queued yet.</p>}
               {networkId && <form className="stack-form" onSubmit={createTask}><input placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required minLength={3} /><select value={taskAgent} onChange={(e) => setTaskAgent(e.target.value)}>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select><textarea placeholder="Describe the research or work to perform…" value={taskInstruction} onChange={(e) => setTaskInstruction(e.target.value)} required minLength={5} /><button className="secondary-button" disabled={busy || !agents.length}><Plus size={14} /> Queue task</button></form>}
             </section>
-            <section className="panel"><div className="section-heading"><div><h2>Approval center</h2><p>Owner decisions for external actions.</p></div></div>
+            <section className="panel" id="approvals"><div className="section-heading"><div><h2>Approval center</h2><p>Owner decisions for external actions.</p></div></div>
               {approvals.length ? <div className="data-list">{approvals.map((a) => <div className="approval-row" key={a.id}><small>Task {a.task_id.slice(0, 8)}…</small><div><button className="approve-button" disabled={busy} onClick={() => decide(a.id, "approved")}>Approve</button><button className="reject-button" disabled={busy} onClick={() => decide(a.id, "rejected")}>Reject</button></div></div>)}</div> : <p className="empty-state"><CheckCircle2 size={17} /> No pending approvals.</p>}
             </section>
           </div>
 
-          <section className="panel learning-panel">
+          <section className="panel learning-panel" id="learning">
             <div className="section-heading"><div><h2>Agent feedback & approved lessons</h2><p>Rate completed internal outputs. Only owner-approved lessons reach future tasks.</p></div></div>
             {tasks.some((task) => task.status === "completed" && !task.external_action && !evaluations.some((item) => item.task_id === task.id)) ? (
               <form className="stack-form" onSubmit={submitEvaluation}>

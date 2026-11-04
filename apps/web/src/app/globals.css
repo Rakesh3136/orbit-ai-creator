@@ -10,3 +10,6 @@
 .learning-panel{margin-top:15px}.learning-panel .stack-form label{font-size:11px;color:#626d81}.learning-panel .data-list{margin-top:14px}.lesson-actions{display:flex;gap:6px;flex-wrap:wrap}
 
 .topbar-actions{display:flex;align-items:center;gap:14px}.install-button{display:flex;align-items:center;gap:6px;border:1px solid #dcdaf9;border-radius:7px;padding:8px 10px;background:#f3f1ff;color:#5d52bf;font-size:11px;cursor:pointer}.install-button:hover{background:#e9e6ff}
+
+.side-link{color:inherit;text-decoration:none;cursor:pointer}.side-link:hover{background:#222e48;color:#fff;scroll-margin-top:16px}html{scroll-behavior:smooth;scroll-padding-top:18px}
+@media(max-width:650px){.side-nav{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.side-nav::-webkit-scrollbar{display:none}.side-label{display:none}.side-link{display:flex;flex:0 0 auto;font-size:10px;height:34px;padding:0 8px;gap:5px}.side-owner{display:none}}
