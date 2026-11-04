@@ -7,14 +7,18 @@ from orbit.pipeline import CreatorPipeline
 
 def test_pipeline_loads_human_lessons_and_records_unapproved_evaluation(tmp_path: Path) -> None:
     learning = LearningMemory(tmp_path / "learning.sqlite3")
-    learning.record(
+    evaluation_id = learning.record(
         TaskEvaluation(
             agent="scriptwriter",
             task_type="script",
             scores={"clarity": 72},
-            feedback="Open with a concrete viewer question.",
             approved=False,
         )
+    )
+    learning.submit_review(
+        evaluation_id, 4,
+        lesson="Open with a concrete viewer question.",
+        approve_lesson=True,
     )
     pipeline = CreatorPipeline(
         memory=MemoryStore(str(tmp_path / "memory.sqlite3")),
