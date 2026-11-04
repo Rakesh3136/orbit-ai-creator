@@ -8,3 +8,5 @@
 @media(max-width:650px){.dashboard{display:block}.side-nav{width:auto;padding:12px 15px;display:flex;flex-direction:row;align-items:center;gap:12px}.side-nav .login-brand{margin:0}.side-label,.side-link,.side-owner div,.side-owner button{display:none}.side-owner{margin:0 0 0 auto;border:0;padding:0}.topbar{padding:0 15px}.page{padding:18px 13px}.columns{grid-template-columns:1fr}.metric-grid{gap:8px}.metric-grid article{padding:12px}.inline-form{align-items:stretch;flex-direction:column}.inline-form input{max-width:none}.page-title h1{font-size:24px}}
 
 .learning-panel{margin-top:15px}.learning-panel .stack-form label{font-size:11px;color:#626d81}.learning-panel .data-list{margin-top:14px}.lesson-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+.topbar-actions{display:flex;align-items:center;gap:14px}.install-button{display:flex;align-items:center;gap:6px;border:1px solid #dcdaf9;border-radius:7px;padding:8px 10px;background:#f3f1ff;color:#5d52bf;font-size:11px;cursor:pointer}.install-button:hover{background:#e9e6ff}
