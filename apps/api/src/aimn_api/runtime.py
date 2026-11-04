@@ -8,7 +8,7 @@ from collections.abc import Callable
 from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
-from aimn_api.models import AgentTask
+from aimn_api.models import AgentTask, AgentEvaluation
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
 
 def _brief(task: AgentTask, kind: str, steps: list[str], caution: str) -> dict[str, Any]:
@@ -164,7 +164,21 @@ def run_once(session_factory: sessionmaker) -> str:
                 return "orchestrating"
             handler=HANDLERS.get(task.agent_id)
             if handler is None: raise ValueError(f"No local handler registered for agent '{task.agent_id}'")
-            task.result=handler(task); task.status="completed"; task.error=None
+            task.result=handler(task)
+            lessons = db.execute(select(AgentEvaluation).where(
+                AgentEvaluation.network_id == task.network_id,
+                AgentEvaluation.lesson_status == "approved",
+                AgentEvaluation.lesson.is_not(None),
+                AgentEvaluation.channel_id.is_(None) if task.channel_id is None else
+                    ((AgentEvaluation.channel_id.is_(None)) | (AgentEvaluation.channel_id == task.channel_id)),
+            ).order_by(AgentEvaluation.decided_at.desc(), AgentEvaluation.created_at.desc()).limit(8)).scalars().all()
+            task.result["approved_lessons_context"] = [
+                {"evaluation_id": str(x.id), "lesson": x.lesson, "agent_id": x.agent_id,
+                 "skill_id": x.skill_id, "skill_version": x.skill_version,
+                 "rating": x.rating, "scope": "network" if x.channel_id is None else "channel"}
+                for x in lessons
+            ]
+            task.status="completed"; task.error=None
             db.commit()
             _finalize_ready_orchestrations(db)
             return "completed"

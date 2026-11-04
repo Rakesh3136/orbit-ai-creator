@@ -57,3 +57,8 @@ Create an internal task with `agent_id: "ceo"`. The CEO creates at most five chi
 The API now includes authenticated encryption helpers for JSON credential payloads. The ciphertext envelope is versioned and authenticated; a missing or incorrect key fails closed. Configure `AIMN_CREDENTIAL_ENCRYPTION_KEY` outside source control. This is the cryptographic foundation only: database persistence, Google OAuth callback handling, token refresh, disconnect/revocation and channel linking are not yet enabled.
 
 Publishing, comment replies and other external actions remain disabled in the worker, regardless of approval state. Real integrations require separate provider adapters, credential handling, action-specific approval checks and integration tests.
+
+
+## Feedback and approved lessons
+
+Owners can rate completed internal task outputs through `POST /api/v1/networks/{network_id}/tasks/{task_id}/evaluation`, list evaluations with `GET /api/v1/networks/{network_id}/evaluations`, and approve/reject proposed lessons with `POST /api/v1/evaluations/{evaluation_id}/lesson-decision`. Evaluations preserve task, network/channel, reviewer, agent, skill and registry provenance. Pending/rejected lessons are excluded from future local task context. Network lessons are shared within their network; channel lessons remain channel-specific. This is text retrieval, not model fine-tuning.

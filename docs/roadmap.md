@@ -34,7 +34,10 @@
 - [x] Versioned agent/skill registry; planning results record the skill version used.
 - [x] Initial registry denies paid-provider spend, tool access and external writes by default.
 - [ ] Worker leases, stale-task recovery, retries and heartbeat.
-- [ ] Evaluated local feedback/memory loop (not model fine-tuning yet).
+- [x] Owner-rated completed-task evaluations with correction and skill/registry provenance.
+- [x] Pending/approved/rejected lessons with explicit owner decision and network/channel scope.
+- [x] Approved lesson retrieval in future matching local task context (not model fine-tuning).
+- [ ] Quality trend reporting, lesson expiry/versioning and memory conflict resolution.
 - [ ] LLM provider adapters and budget/rate limits (only if a genuinely useful free/local model is selected).
 - [ ] Agent activity stream, audit trail and cost accounting.
 

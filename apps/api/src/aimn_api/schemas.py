@@ -103,3 +103,39 @@ class ApprovalDecision(BaseModel):
 class AuthLogin(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=1, max_length=256)
+
+class EvaluationCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    correction: str | None = Field(default=None, max_length=12000)
+    lesson: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("correction", "lesson")
+    @classmethod
+    def clean_optional_text(cls, value):
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class LessonDecision(BaseModel):
+    decision: Literal["approved", "rejected"]
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class EvaluationRead(BaseModel):
+    id: uuid.UUID
+    task_id: uuid.UUID
+    network_id: uuid.UUID
+    channel_id: uuid.UUID | None
+    agent_id: str
+    skill_id: str
+    skill_version: str
+    registry_version: str
+    rating: int
+    correction: str | None
+    lesson: str | None
+    lesson_status: Literal["none", "pending", "approved", "rejected"]
+    reviewer_email: str
+    created_at: datetime
+    decided_at: datetime | None
+    decision_note: str | None

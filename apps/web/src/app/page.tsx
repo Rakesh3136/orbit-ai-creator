@@ -9,6 +9,7 @@ type Channel = { id: string; name: string; slug: string; niche?: string | null; 
 type Agent = { id: string; name: string; department: string; description: string; skill_id: string; skill_version: string; registry_version: string; execution_mode: string; max_paid_provider_cost_usd: number; external_writes: boolean };
 type Task = { id: string; title: string; agent_id: string; parent_task_id?: string | null; status: string; external_action: boolean };
 type Approval = { id: string; task_id: string; status: string; decision_note?: string | null };
+type Evaluation = { id: string; task_id: string; agent_id: string; rating: number; correction?: string | null; lesson?: string | null; lesson_status: string; skill_id: string; skill_version: string; channel_id?: string | null };
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API}${path}`, {
@@ -35,6 +36,11 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [evaluationTask, setEvaluationTask] = useState("");
+  const [evaluationRating, setEvaluationRating] = useState("4");
+  const [evaluationCorrection, setEvaluationCorrection] = useState("");
+  const [evaluationLesson, setEvaluationLesson] = useState("");
   const [networkName, setNetworkName] = useState("My media network");
   const [channelName, setChannelName] = useState("");
   const [channelNiche, setChannelNiche] = useState("");
@@ -55,16 +61,18 @@ export default function Home() {
     const id = selectedId || networkId || networkData[0]?.id || "";
     setNetworkId(id);
     if (id) {
-      const [channelData, taskData, approvalData] = await Promise.all([
+      const [channelData, taskData, approvalData, evaluationData] = await Promise.all([
         request<Channel[]>(`/api/v1/networks/${id}/channels`),
         request<Task[]>(`/api/v1/networks/${id}/tasks`),
         request<Approval[]>(`/api/v1/networks/${id}/approvals?status=pending`),
+        request<Evaluation[]>(`/api/v1/networks/${id}/evaluations`),
       ]);
       setChannels(channelData);
       setTasks(taskData);
       setApprovals(approvalData);
+      setEvaluations(evaluationData);
     } else {
-      setChannels([]); setTasks([]); setApprovals([]);
+      setChannels([]); setTasks([]); setApprovals([]); setEvaluations([]);
     }
   }, [networkId]);
 
@@ -98,7 +106,7 @@ export default function Home() {
   async function logout() {
     await run(async () => {
       await request("/api/v1/auth/logout", { method: "POST" });
-      setAuthenticated(false); setOwner(""); setNetworks([]); setChannels([]); setTasks([]); setApprovals([]);
+      setAuthenticated(false); setOwner(""); setNetworks([]); setChannels([]); setTasks([]); setApprovals([]); setEvaluations([]);
     });
   }
 
@@ -133,6 +141,36 @@ export default function Home() {
         method: "POST", body: JSON.stringify({ agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false }),
       });
       setTaskTitle(""); setTaskInstruction(""); await refresh(networkId); setNotice("Task queued. The local worker will process it when the worker process is running.");
+    });
+  }
+
+
+  async function submitEvaluation(event: FormEvent) {
+    event.preventDefault();
+    if (!networkId || !evaluationTask) return;
+    await run(async () => {
+      await request(`/api/v1/networks/${networkId}/tasks/${evaluationTask}/evaluation`, {
+        method: "POST",
+        body: JSON.stringify({
+          rating: Number(evaluationRating),
+          correction: evaluationCorrection || null,
+          lesson: evaluationLesson || null,
+        }),
+      });
+      setEvaluationTask(""); setEvaluationCorrection(""); setEvaluationLesson("");
+      await refresh(networkId);
+      setNotice("Evaluation saved. Proposed lessons remain unavailable until you approve them.");
+    });
+  }
+
+  async function decideLesson(id: string, decision: "approved" | "rejected") {
+    await run(async () => {
+      await request(`/api/v1/evaluations/${id}/lesson-decision`, {
+        method: "POST",
+        body: JSON.stringify({ decision, note: "Reviewed by the network owner in AIMN." }),
+      });
+      await refresh(networkId);
+      setNotice(`Lesson ${decision}.`);
     });
   }
 
@@ -207,6 +245,28 @@ export default function Home() {
               {approvals.length ? <div className="data-list">{approvals.map((a) => <div className="approval-row" key={a.id}><small>Task {a.task_id.slice(0, 8)}…</small><div><button className="approve-button" disabled={busy} onClick={() => decide(a.id, "approved")}>Approve</button><button className="reject-button" disabled={busy} onClick={() => decide(a.id, "rejected")}>Reject</button></div></div>)}</div> : <p className="empty-state"><CheckCircle2 size={17} /> No pending approvals.</p>}
             </section>
           </div>
+
+          <section className="panel learning-panel">
+            <div className="section-heading"><div><h2>Agent feedback & approved lessons</h2><p>Rate completed internal outputs. Only owner-approved lessons reach future tasks.</p></div></div>
+            {tasks.some((task) => task.status === "completed" && !task.external_action && !evaluations.some((item) => item.task_id === task.id)) ? (
+              <form className="stack-form" onSubmit={submitEvaluation}>
+                <select aria-label="Completed task" value={evaluationTask} onChange={(e) => setEvaluationTask(e.target.value)} required>
+                  <option value="">Choose a completed task to review</option>
+                  {tasks.filter((task) => task.status === "completed" && !task.external_action && !evaluations.some((item) => item.task_id === task.id)).map((task) => <option key={task.id} value={task.id}>{task.title} · {task.agent_id}</option>)}
+                </select>
+                <label>Quality rating (1–5)<select value={evaluationRating} onChange={(e) => setEvaluationRating(e.target.value)}><option value="1">1 — Needs major work</option><option value="2">2 — Below expectations</option><option value="3">3 — Acceptable</option><option value="4">4 — Good</option><option value="5">5 — Excellent</option></select></label>
+                <textarea placeholder="Correction or specific feedback (optional)" value={evaluationCorrection} onChange={(e) => setEvaluationCorrection(e.target.value)} />
+                <textarea placeholder="Reusable lesson (optional; requires approval)" value={evaluationLesson} onChange={(e) => setEvaluationLesson(e.target.value)} />
+                <button className="secondary-button" disabled={busy || !evaluationTask}>Save evaluation</button>
+              </form>
+            ) : <p className="empty-state">No unevaluated completed internal tasks.</p>}
+            <div className="data-list">
+              {evaluations.map((item) => <div className="data-row" key={item.id}>
+                <div><b>{item.agent_id} · {item.rating}/5</b><small>{item.skill_id} v{item.skill_version} · {item.correction || "No correction recorded"}</small>{item.lesson && <small>Lesson: {item.lesson}</small>}</div>
+                {item.lesson_status === "pending" ? <div className="lesson-actions"><button className="approve-button" disabled={busy} onClick={() => decideLesson(item.id, "approved")}>Approve lesson</button><button className="reject-button" disabled={busy} onClick={() => decideLesson(item.id, "rejected")}>Reject</button></div> : <span className="tag">{item.lesson_status.toUpperCase()}</span>}
+              </div>)}
+            </div>
+          </section>
           <footer><span>AIMN · Autonomous AI Media Network</span><span><ShieldCheck size={13} /> Human approval required for external actions</span></footer>
         </div>
       </section>

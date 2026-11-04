@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from aimn_api.db import get_db
-from aimn_api.models import AgentTask, Approval, Channel, Network
-from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead
+from aimn_api.models import AgentTask, AgentEvaluation, Approval, Channel, Network, utc_now
+from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead, EvaluationCreate, EvaluationRead, LessonDecision
 from aimn_api.security import require_owner_or_api_key
-from aimn_api.agent_registry import get_agent, list_agent_records
+from aimn_api.agent_registry import REGISTRY_VERSION, get_agent, list_agent_records
+from aimn_api.config import settings
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_owner_or_api_key)])
 
@@ -213,3 +214,70 @@ def decide_approval(
     db.commit()
     db.refresh(item)
     return approval_out(item)
+
+def evaluation_out(item: AgentEvaluation) -> EvaluationRead:
+    return EvaluationRead(
+        id=item.id, task_id=item.task_id, network_id=item.network_id,
+        channel_id=item.channel_id, agent_id=item.agent_id, skill_id=item.skill_id,
+        skill_version=item.skill_version, registry_version=item.registry_version,
+        rating=item.rating, correction=item.correction, lesson=item.lesson,
+        lesson_status=item.lesson_status, reviewer_email=item.reviewer_email,
+        created_at=item.created_at, decided_at=item.decided_at, decision_note=item.decision_note,
+    )
+
+
+@router.get("/networks/{network_id}/evaluations", response_model=list[EvaluationRead])
+def list_evaluations(network_id: uuid.UUID, db: Session = Depends(get_db)):
+    get_active_network(db, network_id)
+    rows = db.query(AgentEvaluation).filter(AgentEvaluation.network_id == network_id).order_by(AgentEvaluation.created_at.desc()).limit(100).all()
+    return [evaluation_out(row) for row in rows]
+
+
+@router.post("/networks/{network_id}/tasks/{task_id}/evaluation", response_model=EvaluationRead, status_code=201)
+def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: EvaluationCreate, db: Session = Depends(get_db)):
+    get_active_network(db, network_id)
+    task = db.query(AgentTask).filter(AgentTask.id == task_id, AgentTask.network_id == network_id).first()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found in this network")
+    if task.status != "completed" or task.external_action:
+        raise HTTPException(status_code=409, detail="Only completed internal task outputs can be evaluated")
+    if db.query(AgentEvaluation).filter(AgentEvaluation.task_id == task.id).first():
+        raise HTTPException(status_code=409, detail="This task already has an evaluation")
+    definition = get_agent(task.agent_id)
+    if definition is None:
+        raise HTTPException(status_code=409, detail="Task agent is no longer registered")
+    if not settings.owner_email:
+        raise HTTPException(status_code=503, detail="Owner identity is not configured")
+    result = task.result or {}
+    item = AgentEvaluation(
+        task_id=task.id, network_id=task.network_id, channel_id=task.channel_id,
+        agent_id=task.agent_id, skill_id=definition.skill_id,
+        skill_version=str(result.get("skill_version") or definition.skill_version),
+        registry_version=str(result.get("registry_version") or REGISTRY_VERSION),
+        rating=payload.rating, correction=payload.correction, lesson=payload.lesson,
+        lesson_status="pending" if payload.lesson else "none",
+        reviewer_email=settings.owner_email.lower(),
+    )
+    db.add(item)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="This task already has an evaluation")
+    db.refresh(item)
+    return evaluation_out(item)
+
+
+@router.post("/evaluations/{evaluation_id}/lesson-decision", response_model=EvaluationRead)
+def decide_lesson(evaluation_id: uuid.UUID, payload: LessonDecision, db: Session = Depends(get_db)):
+    item = db.get(AgentEvaluation, evaluation_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Evaluation not found")
+    if not item.lesson or item.lesson_status != "pending":
+        raise HTTPException(status_code=409, detail="No pending lesson requires a decision")
+    item.lesson_status = payload.decision
+    item.decision_note = payload.note
+    item.decided_at = utc_now()
+    db.commit()
+    db.refresh(item)
+    return evaluation_out(item)

@@ -11,6 +11,8 @@ Implemented:
 - Versioned agent/skill registry; each planning result records the registry and skill versions used.
 - Zero-paid-provider baseline: no agent tools are enabled, paid-provider budget is USD 0, and external writes are denied.
 - Local deterministic specialist worker.
+- Owner-rated completed-task evaluations with skill and registry provenance.
+- Network/channel-scoped reusable lessons; proposed lessons require explicit owner approval before future-task retrieval.
 - Bounded CEO workflow: research → strategy → writing → fact-checking → production.
 - Parent/child task tracking and result aggregation.
 - Docker Compose stack for PostgreSQL, API, worker and dashboard.
@@ -20,7 +22,7 @@ Implemented:
 Not yet production-complete:
 - Live AI provider integration and real CEO reasoning.
 - Live research and source verification.
-- An evaluated feedback/memory loop; the current registry is versioned workflow configuration, not model fine-tuning or autonomous self-training.
+- Model fine-tuning or autonomous self-training. The implemented feedback loop retrieves owner-approved text lessons; it does not train model weights.
 - AIMN-to-ORBIT production handoff.
 - Secure server-side OAuth connection and encrypted refresh-token storage.
 - YouTube channel identity sync and Analytics integration in AIMN.
@@ -112,3 +114,8 @@ For YouTube CLI dependencies, install `.[youtube]`. The OAuth helper and uploade
 ## Verification
 
 GitHub Actions runs backend tests, frontend production build, and a deterministic ORBIT render smoke test. See [the AIMN roadmap](docs/roadmap.md) for remaining release gates.
+
+
+## Agent feedback and lesson memory
+
+See [the feedback and memory guide](docs/agent-feedback-memory.md). Owners can rate completed internal task outputs, record corrections, and propose reusable lessons. Proposed lessons are pending until explicitly approved. Approved lessons are retrieved with network/channel scoping and skill-version provenance. This is local retrieval, not model fine-tuning.

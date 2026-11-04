@@ -80,3 +80,28 @@ class Approval(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
     task: Mapped[AgentTask] = relationship(back_populates="approvals")
+
+class AgentEvaluation(Base):
+    __tablename__ = "agent_evaluations"
+    __table_args__ = (
+        UniqueConstraint("task_id", name="uq_agent_evaluations_task_id"),
+        CheckConstraint("rating BETWEEN 1 AND 5", name="ck_agent_evaluations_rating"),
+        CheckConstraint("lesson_status IN ('none','pending','approved','rejected')", name="ck_agent_evaluations_lesson_status"),
+        Index("ix_agent_evaluations_scope_status", "network_id", "channel_id", "lesson_status"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    task_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("agent_tasks.id", ondelete="CASCADE"), nullable=False)
+    network_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("networks.id", ondelete="CASCADE"), nullable=False)
+    channel_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("channels.id", ondelete="CASCADE"))
+    agent_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    skill_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    skill_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    registry_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    rating: Mapped[int] = mapped_column(nullable=False)
+    correction: Mapped[str | None] = mapped_column(Text)
+    lesson: Mapped[str | None] = mapped_column(Text)
+    lesson_status: Mapped[str] = mapped_column(String(20), default="none", nullable=False)
+    reviewer_email: Mapped[str] = mapped_column(String(254), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_note: Mapped[str | None] = mapped_column(String(1000))
