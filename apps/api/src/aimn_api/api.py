@@ -5,9 +5,8 @@ from sqlalchemy.orm import Session
 from aimn_api.db import get_db
 from aimn_api.models import AgentTask, AgentEvaluation, Approval, Channel, Network, utc_now
 from aimn_api.schemas import ApprovalDecision, ApprovalRead, ChannelCreate, ChannelRead, ChannelUpdate, NetworkCreate, NetworkRead, TaskCreate, TaskRead, EvaluationCreate, EvaluationRead, LessonDecision
-from aimn_api.security import require_owner_or_api_key
+from aimn_api.security import require_owner_or_api_key, require_owner_session
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent, list_agent_records
-from aimn_api.config import settings
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_owner_or_api_key)])
 
@@ -234,7 +233,7 @@ def list_evaluations(network_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/networks/{network_id}/tasks/{task_id}/evaluation", response_model=EvaluationRead, status_code=201)
-def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: EvaluationCreate, db: Session = Depends(get_db)):
+def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: EvaluationCreate, owner_email: str = Depends(require_owner_session), db: Session = Depends(get_db)):
     get_active_network(db, network_id)
     task = db.query(AgentTask).filter(AgentTask.id == task_id, AgentTask.network_id == network_id).first()
     if task is None:
@@ -246,8 +245,6 @@ def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: Evalua
     definition = get_agent(task.agent_id)
     if definition is None:
         raise HTTPException(status_code=409, detail="Task agent is no longer registered")
-    if not settings.owner_email:
-        raise HTTPException(status_code=503, detail="Owner identity is not configured")
     result = task.result or {}
     item = AgentEvaluation(
         task_id=task.id, network_id=task.network_id, channel_id=task.channel_id,
@@ -256,7 +253,7 @@ def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: Evalua
         registry_version=str(result.get("registry_version") or REGISTRY_VERSION),
         rating=payload.rating, correction=payload.correction, lesson=payload.lesson,
         lesson_status="pending" if payload.lesson else "none",
-        reviewer_email=settings.owner_email.lower(),
+        reviewer_email=owner_email.lower(),
     )
     db.add(item)
     try:
@@ -269,7 +266,7 @@ def create_evaluation(network_id: uuid.UUID, task_id: uuid.UUID, payload: Evalua
 
 
 @router.post("/evaluations/{evaluation_id}/lesson-decision", response_model=EvaluationRead)
-def decide_lesson(evaluation_id: uuid.UUID, payload: LessonDecision, db: Session = Depends(get_db)):
+def decide_lesson(evaluation_id: uuid.UUID, payload: LessonDecision, owner_email: str = Depends(require_owner_session), db: Session = Depends(get_db)):
     item = db.get(AgentEvaluation, evaluation_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Evaluation not found")
