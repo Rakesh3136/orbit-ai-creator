@@ -106,7 +106,15 @@ If the local model is unavailable or returns malformed output, ORBIT falls back 
 
 ## Owner feedback and learning control centre
 
-Every generated script receives a local evaluation ID. Review outputs on the same machine that generated them:
+Every generated script receives a local evaluation ID. Use the browser dashboard on the same machine that generated them:
+
+```bash
+orbit-dashboard
+```
+
+Open `http://127.0.0.1:8765` in your browser. The dashboard shows unreviewed outputs, agent performance, and recent reviews. Submit ratings/corrections and explicitly approve lessons for future work. It binds to loopback only, uses a per-session token for review submissions, and does not expose a public network endpoint. Keep the terminal running while using it; press Ctrl+C to stop.
+
+You can still use the CLI for terminal-based reviews:
 
 ```bash
 orbit-feedback pending
