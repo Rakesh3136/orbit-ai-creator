@@ -39,7 +39,7 @@ def test_review_validation_and_unknown_evaluation(tmp_path: Path) -> None:
         memory.submit_review(99, 4, lesson="must be approved", approve_lesson=True)
     evaluation_id = memory.record(TaskEvaluation("writer", "script", {"quality": 60}))
     with pytest.raises(ValueError):
-        memory.submit_review(evaluation_id, 4, lesson="missing lesson approval", approve_lesson=True)
+        memory.submit_review(evaluation_id, 4, correction="needs work", approve_lesson=True)
 
 
 def test_legacy_database_gets_additive_scope_migration(tmp_path: Path) -> None:
