@@ -184,3 +184,18 @@ def serve(host: str = "127.0.0.1", port: int = 8765, db_path: str = "data/orbit-
         print("\\nStopping ORBIT dashboard.")
     finally:
         server.server_close()
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run the local ORBIT owner feedback dashboard.")
+    parser.add_argument("--host", default="127.0.0.1", help="loopback address only (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--db", default="data/orbit-learning.sqlite3")
+    args = parser.parse_args()
+    serve(args.host, args.port, args.db)
+
+
+if __name__ == "__main__":
+    main()
