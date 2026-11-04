@@ -43,6 +43,7 @@ def test_evaluation_requires_completed_internal_task_and_owner_approves_lesson(c
 
 
 def test_external_action_task_cannot_be_evaluated(client, auth_headers):
+    client.cookies.set("aimn_owner_session", issue_session("owner@example.test", "unit-test-signing-secret-32-characters-long", 3600))
     network = client.post("/api/v1/networks", headers=auth_headers, json={"name": "External guard"}).json()
     task = client.post(f"/api/v1/networks/{network['id']}/tasks", headers=auth_headers,
         json={"agent_id": "publisher", "title": "Publish", "instruction": "Publish only after approval.", "external_action": True}).json()
