@@ -70,7 +70,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Open the dashboard at http://localhost:3000. The API health endpoint is http://localhost:8000/health/ready. The API container applies Alembic migrations before starting; the worker starts after the API is healthy.
+Open the dashboard at http://localhost:3000. The API and database are private to the Docker network; only the dashboard is bound to your computer loopback address. The API container applies Alembic migrations before starting; the worker starts after the API is healthy.
 
 To inspect logs:
 
@@ -86,7 +86,7 @@ docker compose down
 
 To remove local database data too, use `docker compose down -v` (this permanently deletes the local database volume).
 
-The Compose configuration sets the session cookie to non-secure for local HTTP only. A real HTTPS deployment must use secure cookies, a trusted origin, managed secrets, backups and an appropriate reverse proxy. Do not expose the development stack directly to the public internet.
+The Compose configuration uses secure HttpOnly owner-session cookies. The API and PostgreSQL ports are not published to the host; the web UI binds only to 127.0.0.1. Keep `.env` private and back up the Docker volume. Do not expose the development stack directly to the public internet.
 
 ## AIMN worker behavior
 
