@@ -85,7 +85,7 @@ docker compose down
 
 To remove local database data too, use `docker compose down -v` (this permanently deletes the local database volume).
 
-The Compose configuration uses secure HttpOnly owner-session cookies. The API and PostgreSQL ports are not published to the host; the web UI binds only to 127.0.0.1. Keep `.env` private and back up the Docker volume. Do not expose the development stack directly to the public internet.
+The Compose configuration uses secure HttpOnly owner-session cookies. The API and PostgreSQL ports are not published to the host; the web UI binds only to 127.0.0.1. Keep `.env` private. Create a verified database backup with `python scripts/aimn_backup.py backup` and verify it with `python scripts/aimn_backup.py verify PATH_TO_DUMP`. Do not expose the development stack directly to the public internet.
 
 ## AIMN worker behavior
 
