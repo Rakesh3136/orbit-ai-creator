@@ -132,3 +132,8 @@ AIMN is being delivered as an installable Progressive Web App (PWA), so it opens
 For local Docker testing on a computer, open http://localhost:3000 on that computer. To test from a phone on the same Wi-Fi, use the computer's LAN IP (for example, http://192.168.x.x:3000); that HTTP address is for testing and is not sufficient for full PWA installation. Do not expose the development Compose stack directly to the public internet.
 
 The web container now proxies /api/* requests to the private API container. The browser no longer calls localhost:8000, which would incorrectly mean the Android phone itself when AIMN is opened on a phone. For a public HTTPS deployment, set AIMN_SESSION_COOKIE_SECURE=true and set the correct AIMN_WEB_ORIGIN in the deployment environment.
+
+
+## Portability and migration
+
+AIMN is designed to move between Docker hosts without depending on GitHub as its runtime. See the [portability and migration guide](docs/portability-and-migration.md) for the current backup, restore, and host-move procedure, plus known limitations.
