@@ -74,7 +74,9 @@ def backup(destination: Path) -> Path:
     try:
         with temp.open("wb") as output:
             compose("exec", "-T", "postgres", "pg_dump", "-U", "aimn", "-d", "aimn", "-Fc", stdout=output)
-        if temp.stat().st_size < 5 or temp.read_bytes()[:5] != b"PGDMP":
+        with temp.open("rb") as check_stream:
+            signature = check_stream.read(5)
+        if temp.stat().st_size < 5 or signature != b"PGDMP":
             raise BackupError("pg_dump output is not a valid PostgreSQL custom-format archive.")
         checksum = sha256_file(temp)
         size = temp.stat().st_size
@@ -119,9 +121,8 @@ def verify_archive(archive: Path) -> dict:
             raise BackupError("Backup SHA-256 does not match its manifest. Do not restore this file.")
         if manifest.get("size_bytes") != archive.stat().st_size:
             raise BackupError("Backup size does not match its manifest. Do not restore this file.")
-    listing = run(["docker", "compose", "exec", "-T", "postgres", "pg_restore", "--list"], check=False,
-                  stdout=subprocess.DEVNULL)
-    # pg_restore --list needs the archive as stdin; use a temporary in-container stream via docker exec.
+    # pg_restore reads the custom-format archive from stdin when no filename is supplied.
+    ensure_stack_database()
     with archive.open("rb") as source:
         result = subprocess.run(
             ["docker", "compose", "exec", "-T", "postgres", "pg_restore", "--list"],
@@ -145,6 +146,7 @@ def restore(archive: Path, confirm_replace: bool) -> None:
     if answer != "RESTORE AIMN":
         raise BackupError("Confirmation did not match. Nothing was restored.")
 
+    ensure_stack_database()
     verify_archive(archive)
     compose("stop", *SERVICES_TO_PAUSE)
     try:
