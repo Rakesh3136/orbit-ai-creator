@@ -38,13 +38,17 @@ def test_verify_uses_postgres_to_inspect_archive(tmp_path: Path) -> None:
     archive = tmp_path / "good.dump"
     archive.write_bytes(b"PGDMPvalid-test-data")
     completed = subprocess.CompletedProcess(args=["docker"], returncode=0, stdout=b"", stderr=b"")
+    observed = {}
+    def inspect_stdin(*args, **kwargs):
+        observed["signature"] = kwargs["stdin"].read(5)
+        return completed
     with patch.object(aimn_backup, "ensure_stack_database") as ready, patch.object(
-        aimn_backup.subprocess, "run", return_value=completed
-    ) as run:
+        aimn_backup.subprocess, "run", side_effect=inspect_stdin
+    ):
         result = aimn_backup.verify_archive(archive)
     ready.assert_called_once()
     assert result == {}
-    assert run.call_args.kwargs["stdin"].read(5) == b"PGDMP"
+    assert observed["signature"] == b"PGDMP"
 
 
 def test_verify_reports_pg_restore_failure(tmp_path: Path) -> None:
