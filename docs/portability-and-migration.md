@@ -72,4 +72,4 @@ Open `http://localhost:3000`, sign in with the owner account, and verify network
 
 ## Current limitations
 
-This is a migration procedure for the current Docker Compose foundation, not a claim that every AIMN subsystem is already production-ready. Dedicated media/object storage migration, automated backup scheduling, restore drills, multi-host orchestration, and seamless zero-downtime cutover are future work. The current AI worker is deterministic; portability does not imply autonomous model training or unlimited free compute.
+This is a migration procedure for the current Docker Compose foundation, not a claim that every AIMN subsystem is already production-ready. Automated backup scheduling, dedicated media/object storage migration, restore drills, multi-host orchestration, and seamless zero-downtime cutover are future work. The current AI worker is deterministic; portability does not imply autonomous model training or unlimited free compute.
