@@ -60,10 +60,9 @@ YouTube adapter (standalone today; approval-gated private uploads)
 
 Requirements: Docker Engine and the Docker Compose plugin.
 
-1. Copy `.env.example` to `.env`.
-2. Set a strong database password, owner email and random session secret.
-3. Generate `AIMN_OWNER_PASSWORD_HASH` using the secure instructions in [apps/api/README.md](apps/api/README.md).
-4. Start the stack:
+1. Install Docker Desktop (Windows/macOS) or Docker Engine + Compose (Linux).
+2. From the repository root, run `python scripts/aimn_setup.py` and follow the prompts. It creates a private `.env` with random database/session secrets and a PBKDF2 password hash. It will not overwrite an existing `.env`.
+3. Start the stack:
 
 ```bash
 docker compose up --build -d
