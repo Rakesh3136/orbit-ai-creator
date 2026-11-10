@@ -79,7 +79,7 @@ def producer(t):
     manifest = PublishingPackage([], "", [], [], "", "").write(
         output / "package", script, video_path=str(rendered.video_path),
         captions_path=str(rendered.captions_path), provenance_path=str(rendered.provenance_path))
-    result = _brief(t,"production_render",["Render scene cards and local narration with FFmpeg.","Generate synchronized SRT captions.","Record generated asset hashes and provenance.","Prepare a private-by-default publishing package."],"Local rendering only. No assets were downloaded and nothing was uploaded or published.")
+    result = _brief(t,"production_render",["Render scene cards and local narration with FFmpeg.","Generate an SRT subtitle file.","Record generated asset hashes and provenance.","Prepare a private-by-default publishing package."],"Local rendering only. No assets were downloaded and nothing was uploaded or published.")
     result.update({
         "mode":"orbit_local_production",
         "render_status":"completed",
