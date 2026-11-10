@@ -53,7 +53,7 @@
 ## Milestone 6 — Production and YouTube operations
 - [ ] Script generation and quality workflows.
 - [ ] Media asset and render job management.
-- [ ] Existing production pipeline adapters and provenance.
+- [x] Producer task can hand a supplied script to ORBIT for local FFmpeg rendering, captions, provenance and a private-by-default package.\n- [ ] Existing production pipeline adapters and provenance.
 - [ ] OAuth connection and YouTube Data API integration.
 - [ ] Upload preparation, metadata validation and explicit action approval.
 - [ ] Comment moderation/reply workflow with owner review.
