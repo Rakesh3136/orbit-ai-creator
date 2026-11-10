@@ -29,7 +29,8 @@ Keep the encryption key separate from the database and ciphertext backups. Never
 - `GET/POST /api/v1/networks`
 - `GET/POST/PATCH /api/v1/networks/{network_id}/channels`
 - `GET /api/v1/agents`
-- `GET/POST /api/v1/networks/{network_id}/tasks`\n- `GET /api/v1/networks/{network_id}/tasks/{task_id}/artifacts/{video|captions|provenance|package}`
+- `GET/POST /api/v1/networks/{network_id}/tasks`
+- `GET /api/v1/networks/{network_id}/tasks/{task_id}/artifacts/{video|captions|provenance|package}`
 - `GET /api/v1/networks/{network_id}/approvals`
 - `POST /api/v1/approvals/{approval_id}/decision`
 
