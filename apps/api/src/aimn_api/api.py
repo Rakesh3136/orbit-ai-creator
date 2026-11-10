@@ -296,8 +296,8 @@ def get_task_artifact(
     task = db.query(AgentTask).filter(
         AgentTask.id == task_id, AgentTask.network_id == network_id
     ).first()
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
+    if task is None or task.status != "completed":
+        raise HTTPException(status_code=404, detail="Completed task not found")
     fields = {
         "video": "video_path",
         "captions": "captions_path",
