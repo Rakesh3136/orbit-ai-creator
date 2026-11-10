@@ -4,12 +4,18 @@ All handlers produce planning artifacts only. No LLM, live research, YouTube
 access, media generation, comments, uploads, or external actions are executed.
 """
 from __future__ import annotations
+import os
+from pathlib import Path
 from collections.abc import Callable
 from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from aimn_api.models import AgentTask, AgentEvaluation
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
+from orbit.models import Script
+from orbit.production.episode import EpisodeRenderer
+from orbit.production.package import PublishingPackage
+from orbit.production.render_plan import build_render_plan
 
 def _brief(task: AgentTask, kind: str, steps: list[str], caution: str) -> dict[str, Any]:
     definition = get_agent(task.agent_id)
@@ -47,7 +53,45 @@ def fact_checker(t):
     return _brief(t,"fact_check_brief",["Extract factual, numerical and time-sensitive claims.","Find primary evidence for material claims.","Check dates, context, units and wording.","Flag unsupported or disputed statements.","Return corrections with evidence."],"No external sources were checked.")
 
 def producer(t):
-    return _brief(t,"production_brief",["Convert the approved script into scenes.","Specify narration, on-screen text and visual assets.","Flag rights-sensitive assets.","Prepare edit sequence and quality checklist.","Confirm audio, captions and export settings."],"No media files were generated or downloaded.")
+    payload = t.input_payload or {}
+    script_data = payload.get("script") if isinstance(payload, dict) else None
+    if not script_data:
+        return _brief(t,"production_brief",["Convert the approved script into scenes.","Specify narration, on-screen text and visual assets.","Flag rights-sensitive assets.","Prepare edit sequence and quality checklist.","Confirm audio, captions and export settings."],"No script payload was supplied; no media files were generated.")
+    required = ("title", "hook", "body", "conclusion")
+    if not isinstance(script_data, dict) or any(not isinstance(script_data.get(key), str) or not script_data[key].strip() for key in required):
+        raise ValueError("Producer input_payload.script must contain non-empty title, hook, body and conclusion strings")
+    if any(len(script_data[key]) > limit for key, limit in (("title",180),("hook",2000),("body",12000),("conclusion",2000))):
+        raise ValueError("Production script exceeds a field length limit")
+    script = Script(title=script_data["title"].strip(), hook=script_data["hook"].strip(),
+                    body=script_data["body"].strip(), conclusion=script_data["conclusion"].strip())
+    plan = build_render_plan(script)
+    if len(plan.scenes) > 12 or sum(scene.duration_seconds for scene in plan.scenes) > 240:
+        raise ValueError("Production render is limited to 12 scenes and 4 minutes")
+    backend = payload.get("narration_backend", "auto")
+    if backend not in {"auto", "espeak", "silent"}:
+        raise ValueError("narration_backend must be auto, espeak or silent")
+    output = Path(os.getenv("AIMN_PRODUCTION_ROOT", "data/production")) / str(t.network_id) / str(t.id)
+    output.mkdir(parents=True, exist_ok=True)
+    video = output / "episode.mp4"
+    rendered = EpisodeRenderer().render(plan, video, narration_backend=backend)
+    manifest = PublishingPackage([], "", [], [], "", "").write(
+        output / "package", script, video_path=str(rendered.video_path),
+        captions_path=str(rendered.captions_path), provenance_path=str(rendered.provenance_path))
+    result = _brief(t,"production_render",["Render scene cards and local narration with FFmpeg.","Generate synchronized SRT captions.","Record generated asset hashes and provenance.","Prepare a private-by-default publishing package."],"Local rendering only. No assets were downloaded and nothing was uploaded or published.")
+    result.update({
+        "mode":"orbit_local_production",
+        "render_status":"completed",
+        "video_path":str(rendered.video_path),
+        "captions_path":str(rendered.captions_path),
+        "provenance_path":str(rendered.provenance_path),
+        "package_manifest_path":str(manifest),
+        "narration_backend":rendered.narration_backend,
+        "scene_count":len(plan.scenes),
+        "duration_seconds":sum(scene.duration_seconds for scene in plan.scenes),
+        "external_writes":False,
+        "paid_provider_used":False,
+    })
+    return result
 
 def growth(t):
     return _brief(t,"growth_analysis_brief",["Define the channel objective and success metric.","Collect impressions, CTR, watch time and retention.","Compare performance by topic and format.","Form one testable hypothesis.","Set a review window and record results."],"No YouTube Analytics data was accessed.")
