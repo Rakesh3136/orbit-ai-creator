@@ -1,5 +1,8 @@
+import os
 import uuid
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from aimn_api.db import get_db
@@ -279,3 +282,47 @@ def decide_lesson(evaluation_id: uuid.UUID, payload: LessonDecision, owner_email
     db.commit()
     db.refresh(item)
     return evaluation_out(item)
+
+
+@router.get("/networks/{network_id}/tasks/{task_id}/artifacts/{artifact}")
+def get_task_artifact(
+    network_id: uuid.UUID,
+    task_id: uuid.UUID,
+    artifact: str,
+    db: Session = Depends(get_db),
+):
+    """Serve only known artifacts inside this task's production directory."""
+    get_active_network(db, network_id)
+    task = db.query(AgentTask).filter(
+        AgentTask.id == task_id, AgentTask.network_id == network_id
+    ).first()
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    fields = {
+        "video": "video_path",
+        "captions": "captions_path",
+        "provenance": "provenance_path",
+        "package": "package_manifest_path",
+    }
+    field = fields.get(artifact)
+    if field is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    raw_path = (task.result or {}).get(field)
+    if not isinstance(raw_path, str) or not raw_path:
+        raise HTTPException(status_code=404, detail="Artifact not available")
+    root = Path(os.getenv("AIMN_PRODUCTION_ROOT", "data/production")).resolve()
+    task_root = (root / str(network_id) / str(task_id)).resolve()
+    path = Path(raw_path).resolve()
+    try:
+        path.relative_to(task_root)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Artifact not available")
+    media_types = {
+        "video": "video/mp4",
+        "captions": "text/plain; charset=utf-8",
+        "provenance": "application/json",
+        "package": "application/json",
+    }
+    return FileResponse(path, media_type=media_types[artifact], filename=path.name)
