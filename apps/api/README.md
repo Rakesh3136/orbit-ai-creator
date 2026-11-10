@@ -46,7 +46,7 @@ python -m aimn_api.worker --once
 python -m aimn_api.worker --poll-seconds 3
 ```
 
-The worker runs deterministic planning handlers. It does not call an LLM, perform live web research, access YouTube, generate media, read comments, or publish.
+The worker runs deterministic local handlers. The Producer can pass a supplied script to the ORBIT renderer for local FFmpeg output; all other specialists remain planning-only. It does not call an LLM, perform live web research, access YouTube, read comments, or publish. Install both the root ORBIT package and the API package for this monorepo integration.
 
 ## AI CEO orchestration (current local mode)
 
