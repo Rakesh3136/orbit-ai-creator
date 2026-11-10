@@ -1,7 +1,9 @@
-"""AIMN local task runtime with bounded, deterministic CEO orchestration.
+"""AIMN local task runtime with bounded CEO orchestration and local production.
 
-All handlers produce planning artifacts only. No LLM, live research, YouTube
-access, media generation, comments, uploads, or external actions are executed.
+Specialists use deterministic local handlers. Producer tasks may render an
+owner-supplied script through ORBIT and write only to the local data directory.
+No LLM, live research, YouTube access, comments, uploads, or external actions
+are executed.
 """
 from __future__ import annotations
 import os
