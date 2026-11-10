@@ -44,7 +44,6 @@ services:
     command: ["python", "-m", "aimn_api.worker", "--poll-seconds", "3"]
     environment:
       DATABASE_URL: postgresql+psycopg://aimn:${POSTGRES_PASSWORD}@postgres:5432/aimn
-    environment:
       AIMN_PRODUCTION_ROOT: /app/data/production
     volumes:
       - ./data:/app/data
