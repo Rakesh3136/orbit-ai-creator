@@ -1,8 +1,10 @@
+from pathlib import Path
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from aimn_api.models import AgentTask, Base, Network
-from aimn_api.runtime import run_once
+from aimn_api.runtime import run_once, producer
 
 def setup_db():
     engine=create_engine("sqlite://",connect_args={"check_same_thread":False},poolclass=StaticPool)
@@ -86,3 +88,55 @@ def test_ceo_creates_bounded_specialist_tasks_and_aggregates_results():
             assert root.result["external_writes"] is False
             assert root.result["max_paid_provider_cost_usd"] == 0
     finally: engine.dispose()
+
+def test_producer_renders_script_through_orbit_adapter(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from aimn_api.models import AgentTask, Network
+    import aimn_api.runtime as runtime
+
+    class FakeRenderer:
+        def render(self, plan, output, narration_backend="auto"):
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"fake-video")
+            captions = output.with_suffix(".srt")
+            captions.write_text("captions")
+            provenance = output.with_name("asset_provenance.json")
+            provenance.write_text("[]")
+            return SimpleNamespace(video_path=output, captions_path=captions,
+                                   provenance_path=provenance, narration_backend="espeak")
+
+    monkeypatch.setattr(runtime, "EpisodeRenderer", FakeRenderer)
+    monkeypatch.setenv("AIMN_PRODUCTION_ROOT", str(tmp_path / "production"))
+    engine, factory = setup_db()
+    try:
+        with factory() as db:
+            network = Network(name="Production test")
+            db.add(network); db.flush()
+            task = AgentTask(network_id=network.id, agent_id="producer",
+                title="Render test episode", instruction="Render the supplied approved script.",
+                input_payload={"script":{"title":"A test","hook":"Opening hook",
+                    "body":"First section.\\n\\nSecond section.","conclusion":"Closing thought."},
+                    "narration_backend":"auto"}, external_action=False, status="queued")
+            db.add(task); db.commit(); task_id = task.id
+        assert run_once(factory) == "completed"
+        with factory() as db:
+            task = db.get(AgentTask, task_id)
+            assert task.result["mode"] == "orbit_local_production"
+            assert task.result["render_status"] == "completed"
+            assert task.result["narration_backend"] == "espeak"
+            assert task.result["external_writes"] is False
+            assert Path(task.result["video_path"]).read_bytes() == b"fake-video"
+            assert Path(task.result["captions_path"]).exists()
+            assert Path(task.result["provenance_path"]).exists()
+            assert Path(task.result["package_manifest_path"]).exists()
+    finally:
+        engine.dispose()
+
+
+def test_producer_rejects_invalid_script_payload():
+    from types import SimpleNamespace
+    from aimn_api.runtime import producer
+    task = SimpleNamespace(agent_id="producer", title="Bad render", instruction="x",
+        result={}, input_payload={"script":{"title":"Only title"}})
+    with pytest.raises(ValueError, match="title, hook, body and conclusion"):
+        producer(task)
