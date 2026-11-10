@@ -26,6 +26,9 @@ services:
       AIMN_SESSION_TTL_SECONDS: ${AIMN_SESSION_TTL_SECONDS:-43200}
       AIMN_SESSION_COOKIE_SECURE: ${AIMN_SESSION_COOKIE_SECURE:-true}
       AIMN_WEB_ORIGIN: ${AIMN_WEB_ORIGIN:-http://localhost:3000}
+      AIMN_PRODUCTION_ROOT: /app/data/production
+    volumes:
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
