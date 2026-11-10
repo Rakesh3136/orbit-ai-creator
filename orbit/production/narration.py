@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import subprocess
+import wave
 
 
 @dataclass(frozen=True)
@@ -72,14 +73,10 @@ class Narrator:
                 capture_output=True,
                 text=True,
             )
-            # Ask ffmpeg for the actual duration so the renderer can synchronize.
-            probe = subprocess.run(
-                [self.ffmpeg, "-v", "error", "-show_entries", "format=duration",
-                 "-of", "default=noprint_wrappers=1:nokey=1", str(destination)],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            return NarrationResult(destination, "espeak", float(probe.stdout.strip()))
+            # Read the WAV duration with Python's standard library. ffmpeg is
+            # an encoder, not ffprobe; asking it for ffprobe-only flags fails.
+            with wave.open(str(destination), "rb") as audio_file:
+                duration = audio_file.getnframes() / audio_file.getframerate()
+            return NarrationResult(destination, "espeak", duration)
 
         raise RuntimeError(f"Unsupported or unavailable narration backend: {choice}")
