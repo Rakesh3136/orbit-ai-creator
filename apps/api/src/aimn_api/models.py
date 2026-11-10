@@ -59,6 +59,7 @@ class AgentTask(Base):
     agent_id: Mapped[str] = mapped_column(String(80), nullable=False)
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
+    input_payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="queued", nullable=False)
     external_action: Mapped[bool] = mapped_column(default=False, nullable=False)
     result: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
