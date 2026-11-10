@@ -137,3 +137,4 @@ The web container now proxies /api/* requests to the private API container. The 
 ## Portability and migration
 
 AIMN is designed to move between Docker hosts without depending on GitHub as its runtime. See the [portability and migration guide](docs/portability-and-migration.md) for the current backup, restore, and host-move procedure, plus known limitations.
+\n\n## Local asset backup and restore\n\nORBIT's local SQLite memory and generated assets can be moved separately from the AIMN PostgreSQL database. Run `python scripts/aimn_assets.py backup` and verify the resulting archive with `python scripts/aimn_assets.py verify PATH_TO_ARCHIVE`. See the [local asset backup guide](docs/local-asset-backup.md).\n
