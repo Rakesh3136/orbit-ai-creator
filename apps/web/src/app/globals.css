@@ -13,3 +13,6 @@
 
 .side-link{color:inherit;text-decoration:none;cursor:pointer}.side-link:hover{background:#222e48;color:#fff;scroll-margin-top:16px}html{scroll-behavior:smooth;scroll-padding-top:18px}
 @media(max-width:650px){.side-nav{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.side-nav::-webkit-scrollbar{display:none}.side-label{display:none}.side-link{display:flex;flex:0 0 auto;font-size:10px;height:34px;padding:0 8px;gap:5px}.side-owner{display:none}}
+
+.form-help{font-size:11px;line-height:1.5;color:#778197;margin:2px 0}
+.data-row a{color:#5d52bf;text-decoration:underline;text-underline-offset:2px}
