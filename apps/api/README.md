@@ -5,9 +5,10 @@ FastAPI control plane for the Autonomous AI Media Network.
 ## Local development
 
 ```bash
+cd apps/api
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]" -e "./apps/api[dev]"
+python -m pip install -e "../.." -e ".[dev]"
 cp .env.example .env
 uvicorn aimn_api.main:app --reload --app-dir src
 ```
