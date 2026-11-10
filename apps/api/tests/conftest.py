@@ -31,10 +31,13 @@ def client(monkeypatch):
         owner_password_hash=password_hash, session_secret='unit-test-signing-secret-32-characters-long',
         session_ttl_seconds=3600, session_cookie_secure=False
     ))
+    app.state.test_sessions = sessions
     app.dependency_overrides[get_db] = override_db
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    if hasattr(app.state, "test_sessions"):
+        del app.state.test_sessions
     Base.metadata.drop_all(bind=test_engine)
     test_engine.dispose()
 
