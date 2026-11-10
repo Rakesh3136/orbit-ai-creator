@@ -25,7 +25,7 @@ docker compose exec -T postgres pg_dump -U aimn -d aimn -Fc > backups/aimn-$(dat
 
 Check that the dump file exists and is not empty. Keep a secure copy of the private `.env` separately. It contains the owner password hash and server secrets. Transfer it using a trusted encrypted method; do not upload it to GitHub or send it in chat.
 
-Also back up any user media, generated assets, or other persistent directories that your deployment uses. The current Compose file defines the PostgreSQL volume; it does not yet define a dedicated shared media volume. Check the current deployment's configured paths before moving media.
+Back up ORBIT's local memory and generated assets with the companion utility. It archives `data/` plus the reserved `media/raw/`, `media/generated/`, and `media/final/` paths, verifies file checksums, and excludes credential-like files:\n\n```bash\npython scripts/aimn_assets.py backup\npython scripts/aimn_assets.py verify backups/YOUR_ASSET_ARCHIVE.tar.gz\n```\n\nKeep the archive and its `.tar.gz.json` manifest together. Transfer `.env` separately using encrypted storage. See [local asset backup and restore](local-asset-backup.md) for the restore procedure.
 
 ### 2. Prepare the new computer
 
@@ -72,4 +72,4 @@ Open `http://localhost:3000`, sign in with the owner account, and verify network
 
 ## Current limitations
 
-This is a migration procedure for the current Docker Compose foundation, not a claim that every AIMN subsystem is already production-ready. Automated backup scheduling, dedicated media/object storage migration, restore drills, multi-host orchestration, and seamless zero-downtime cutover are future work. The current AI worker is deterministic; portability does not imply autonomous model training or unlimited free compute.
+This is a migration procedure for the current Docker Compose foundation, not a claim that every AIMN subsystem is already production-ready. Automated backup scheduling, dedicated shared object storage, restore drills, multi-host orchestration, and seamless zero-downtime cutover are future work. Local ORBIT files are migrated as a verified archive; this is not yet a shared media service. The current AI worker is deterministic; portability does not imply autonomous model training or unlimited free compute.
