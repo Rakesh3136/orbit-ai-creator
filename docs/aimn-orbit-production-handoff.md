@@ -10,7 +10,7 @@ Create an internal task (`external_action: false`) using the authenticated task 
 {
   "agent_id": "producer",
   "title": "Render the approved episode",
-  "instruction": "Render this owner-approved script locally.",
+  "instruction": "Render this owner-supplied script locally.",
   "external_action": false,
   "input_payload": {
     "narration_backend": "auto",
