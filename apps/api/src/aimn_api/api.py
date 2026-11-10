@@ -149,6 +149,7 @@ def create_task(network_id: uuid.UUID, payload: TaskCreate, db: Session = Depend
         network_id=network_id, channel_id=payload.channel_id,
         agent_id=payload.agent_id, title=payload.title.strip(),
         instruction=payload.instruction.strip(),
+        input_payload=payload.input_payload,
         external_action=payload.external_action,
         status="awaiting_approval" if payload.external_action else "queued",
     )
