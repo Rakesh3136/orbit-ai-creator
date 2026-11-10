@@ -100,3 +100,29 @@ def test_agent_catalogue_exposes_versioned_zero_paid_provider_profiles(client, a
     assert all(agent["external_writes"] is False for agent in agents)
     assert all(agent["max_paid_provider_cost_usd"] == 0 for agent in agents)
     assert len({agent["skill_id"] for agent in agents}) == len(agents)
+
+
+
+def test_task_accepts_bounded_producer_script_payload(client, auth_headers):
+    network_id = create_network(client, auth_headers)
+    response = client.post(
+        f"/api/v1/networks/{network_id}/tasks",
+        headers=auth_headers,
+        json={"agent_id":"producer","title":"Render episode",
+              "instruction":"Render this supplied script locally.",
+              "input_payload":{"script":{"title":"A test","hook":"Hook","body":"Body","conclusion":"End"}}},
+    )
+    assert response.status_code == 201
+    assert response.json()["status"] == "queued"
+
+
+def test_task_rejects_oversized_input_payload(client, auth_headers):
+    network_id = create_network(client, auth_headers)
+    response = client.post(
+        f"/api/v1/networks/{network_id}/tasks",
+        headers=auth_headers,
+        json={"agent_id":"producer","title":"Render episode",
+              "instruction":"Render this supplied script locally.",
+              "input_payload":{"script":{"body":"x" * 40000}}},
+    )
+    assert response.status_code == 422
