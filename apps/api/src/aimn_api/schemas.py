@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 from datetime import datetime
@@ -72,6 +73,14 @@ class TaskCreate(BaseModel):
     title: str = Field(min_length=3, max_length=180)
     instruction: str = Field(min_length=5, max_length=12000)
     external_action: bool = False
+    input_payload: dict = Field(default_factory=dict)
+
+    @field_validator("input_payload")
+    @classmethod
+    def bounded_input_payload(cls, value):
+        if len(json.dumps(value, ensure_ascii=False).encode("utf-8")) > 32768:
+            raise ValueError("input_payload must be 32 KB or smaller")
+        return value
 
 class TaskRead(BaseModel):
     id: uuid.UUID
