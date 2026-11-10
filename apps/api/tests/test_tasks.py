@@ -126,3 +126,25 @@ def test_task_rejects_oversized_input_payload(client, auth_headers):
               "input_payload":{"script":{"body":"x" * 40000}}},
     )
     assert response.status_code == 422
+
+
+
+def test_production_artifact_route_is_scoped_and_returns_404_when_missing(client, auth_headers):
+    network_id = create_network(client, auth_headers)
+    created = client.post(
+        f"/api/v1/networks/{network_id}/tasks",
+        headers=auth_headers,
+        json={"agent_id":"producer","title":"Render episode",
+              "instruction":"Prepare the render."},
+    )
+    task_id = created.json()["id"]
+    missing = client.get(
+        f"/api/v1/networks/{network_id}/tasks/{task_id}/artifacts/video",
+        headers=auth_headers,
+    )
+    assert missing.status_code == 404
+    unknown = client.get(
+        f"/api/v1/networks/{network_id}/tasks/{task_id}/artifacts/../../etc/passwd",
+        headers=auth_headers,
+    )
+    assert unknown.status_code in {404, 422}
