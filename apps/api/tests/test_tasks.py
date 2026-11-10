@@ -1,3 +1,8 @@
+from pathlib import Path
+from uuid import UUID
+from aimn_api.models import AgentTask
+
+
 def create_network(client, headers):
     response = client.post("/api/v1/networks", headers=headers, json={"name": "Global Media Network", "default_locale": "en"})
     assert response.status_code == 201
@@ -148,3 +153,31 @@ def test_production_artifact_route_is_scoped_and_returns_404_when_missing(client
         headers=auth_headers,
     )
     assert unknown.status_code in {404, 422}
+
+
+def test_production_artifact_route_serves_only_task_scoped_files(client, auth_headers, tmp_path, monkeypatch):
+    network_id = create_network(client, auth_headers)
+    created = client.post(
+        f"/api/v1/networks/{network_id}/tasks",
+        headers=auth_headers,
+        json={"agent_id":"producer","title":"Render episode","instruction":"Prepare the render."},
+    )
+    task_id = created.json()["id"]
+    root = tmp_path / "production"
+    task_dir = root / network_id / task_id
+    task_dir.mkdir(parents=True)
+    video = task_dir / "episode.mp4"
+    video.write_bytes(b"fake-mp4")
+    with client.app.state.test_sessions() as db:
+        task = db.get(AgentTask, UUID(task_id))
+        task.status = "completed"
+        task.result = {"video_path": str(video)}
+        db.commit()
+    monkeypatch.setenv("AIMN_PRODUCTION_ROOT", str(root))
+    response = client.get(
+        f"/api/v1/networks/{network_id}/tasks/{task_id}/artifacts/video",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    assert response.content == b"fake-mp4"
+    assert response.headers["content-type"] == "video/mp4"
