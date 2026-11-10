@@ -8,7 +8,7 @@ const API = "";
 type Network = { id: string; name: string; default_locale: string; status: string };
 type Channel = { id: string; name: string; slug: string; niche?: string | null; status: string; connected: boolean };
 type Agent = { id: string; name: string; department: string; description: string; skill_id: string; skill_version: string; registry_version: string; execution_mode: string; max_paid_provider_cost_usd: number; external_writes: boolean };
-type Task = { id: string; title: string; agent_id: string; parent_task_id?: string | null; status: string; external_action: boolean };
+type Task = { id: string; title: string; agent_id: string; parent_task_id?: string | null; status: string; external_action: boolean; result?: { render_status?: string } };
 type Approval = { id: string; task_id: string; status: string; decision_note?: string | null };
 type Evaluation = { id: string; task_id: string; agent_id: string; rating: number; correction?: string | null; lesson?: string | null; lesson_status: string; skill_id: string; skill_version: string; channel_id?: string | null };
 
@@ -48,6 +48,10 @@ export default function Home() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskInstruction, setTaskInstruction] = useState("");
   const [taskAgent, setTaskAgent] = useState("research");
+  const [scriptTitle, setScriptTitle] = useState("");
+  const [scriptHook, setScriptHook] = useState("");
+  const [scriptBody, setScriptBody] = useState("");
+  const [scriptConclusion, setScriptConclusion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -139,9 +143,15 @@ export default function Home() {
     if (!networkId) return;
     await run(async () => {
       await request(`/api/v1/networks/${networkId}/tasks`, {
-        method: "POST", body: JSON.stringify({ agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false }),
+        method: "POST", body: JSON.stringify({
+          agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false,
+          input_payload: taskAgent === "producer" ? {
+            narration_backend: "auto",
+            script: { title: scriptTitle, hook: scriptHook, body: scriptBody, conclusion: scriptConclusion },
+          } : {},
+        }),
       });
-      setTaskTitle(""); setTaskInstruction(""); await refresh(networkId); setNotice("Task queued. The local worker will process it when the worker process is running.");
+      setTaskTitle(""); setTaskInstruction(""); setScriptTitle(""); setScriptHook(""); setScriptBody(""); setScriptConclusion(""); await refresh(networkId); setNotice("Task queued. The local worker will process it when the worker process is running.");
     });
   }
 
@@ -239,8 +249,20 @@ export default function Home() {
           </div>
           <div className="columns">
             <section className="panel"><div className="section-heading"><div><h2>Task queue</h2><p>Internal planning tasks run locally; CEO tasks coordinate five specialists.</p></div></div>
-              {tasks.length ? <div className="data-list">{tasks.map((t) => <div className="data-row" key={t.id}><div><b>{t.title}</b><small>{t.agent_id}{t.parent_task_id ? " · specialist subtask" : ""}</small></div><span className="tag">{t.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No tasks queued yet.</p>}
-              {networkId && <form className="stack-form" onSubmit={createTask}><input placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required minLength={3} /><select value={taskAgent} onChange={(e) => setTaskAgent(e.target.value)}>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select><textarea placeholder="Describe the research or work to perform…" value={taskInstruction} onChange={(e) => setTaskInstruction(e.target.value)} required minLength={5} /><button className="secondary-button" disabled={busy || !agents.length}><Plus size={14} /> Queue task</button></form>}
+              {tasks.length ? <div className="data-list">{tasks.map((t) => <div className="data-row" key={t.id}><div><b>{t.title}</b><small>{t.agent_id}{t.parent_task_id ? " · specialist subtask" : ""}</small>{t.result?.render_status === "completed" && <small><a href={`/api/v1/networks/${networkId}/tasks/${t.id}/artifacts/video`}>Video</a> · <a href={`/api/v1/networks/${networkId}/tasks/${t.id}/artifacts/captions`}>Captions</a> · <a href={`/api/v1/networks/${networkId}/tasks/${t.id}/artifacts/provenance`}>Provenance</a></small>}</div><span className="tag">{t.status.toUpperCase()}</span></div>)}</div> : <p className="empty-state">No tasks queued yet.</p>}
+              {networkId && <form className="stack-form" onSubmit={createTask}>
+                <input placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required minLength={3} />
+                <select value={taskAgent} onChange={(e) => setTaskAgent(e.target.value)}>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+                <textarea placeholder="Describe the research or work to perform…" value={taskInstruction} onChange={(e) => setTaskInstruction(e.target.value)} required minLength={5} />
+                {taskAgent === "producer" && <>
+                  <p className="form-help">Paste the script to render locally. AIMN creates a scene-card video, narration, subtitles and an asset-provenance file. Nothing is uploaded.</p>
+                  <input placeholder="Episode title" value={scriptTitle} onChange={(e) => setScriptTitle(e.target.value)} required maxLength={180} />
+                  <textarea placeholder="Opening hook" value={scriptHook} onChange={(e) => setScriptHook(e.target.value)} required maxLength={2000} />
+                  <textarea placeholder="Script body (use a blank line between scenes)" value={scriptBody} onChange={(e) => setScriptBody(e.target.value)} required maxLength={12000} />
+                  <textarea placeholder="Conclusion" value={scriptConclusion} onChange={(e) => setScriptConclusion(e.target.value)} required maxLength={2000} />
+                </>}
+                <button className="secondary-button" disabled={busy || !agents.length}><Plus size={14} /> Queue task</button>
+              </form>}
             </section>
             <section className="panel" id="approvals"><div className="section-heading"><div><h2>Approval center</h2><p>Owner decisions for external actions.</p></div></div>
               {approvals.length ? <div className="data-list">{approvals.map((a) => <div className="approval-row" key={a.id}><small>Task {a.task_id.slice(0, 8)}…</small><div><button className="approve-button" disabled={busy} onClick={() => decide(a.id, "approved")}>Approve</button><button className="reject-button" disabled={busy} onClick={() => decide(a.id, "rejected")}>Reject</button></div></div>)}</div> : <p className="empty-state"><CheckCircle2 size={17} /> No pending approvals.</p>}
