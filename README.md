@@ -32,7 +32,7 @@ To start again later, use `docker compose up -d`. To rebuild after code updates,
 
 ## Use AIMN on Android
 
-The dashboard is a Progressive Web App (PWA), not a Play Store app. For a first local test, connect the phone and computer to the same Wi-Fi and open the computer's LAN IP on the phone (for example `http://192.168.1.20:3000`). Local HTTP is for testing only. For installable app behavior and secure owner sessions from outside the computer, deploy behind HTTPS, set `AIMN_SESSION_COOKIE_SECURE=true`, and set `AIMN_WEB_ORIGIN` to the exact public HTTPS origin. Then open the site in Chrome on Android → ⋮ → Install app / Add to Home screen.
+The dashboard is a Progressive Web App (PWA), not a Play Store app. The local launcher binds the web UI to the computer's network interfaces so a phone on the same trusted Wi-Fi can open the computer's LAN IP (for example `http://192.168.1.20:3000`). Allow port 3000 only on your private network in the computer firewall; never port-forward it to the public internet. Local HTTP is for testing only. For installable app behavior and secure owner sessions from outside the computer, deploy behind HTTPS, set `AIMN_SESSION_COOKIE_SECURE=true`, and set `AIMN_WEB_ORIGIN` to the exact public HTTPS origin. Then open the site in Chrome on Android → ⋮ → Install app / Add to Home screen.
 
 AIMN is not publicly hosted by this repository. Public deployment requires a server or computer that remains online, HTTPS/reverse-proxy configuration, secure backups, and production hardening. Do not expose the development stack or PostgreSQL/API ports directly to the internet.
 
