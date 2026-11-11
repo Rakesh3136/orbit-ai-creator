@@ -140,3 +140,75 @@ def test_producer_rejects_invalid_script_payload():
         result={}, input_payload={"script":{"title":"Only title"}})
     with pytest.raises(ValueError, match="title, hook, body and conclusion"):
         producer(task)
+
+
+def test_ceo_forwards_owner_script_to_producer_and_aggregates_render(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import aimn_api.runtime as runtime
+
+    class FakeRenderer:
+        def render(self, plan, output, narration_backend="auto"):
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"fake-ceo-video")
+            captions = output.with_suffix(".srt")
+            captions.write_text("captions")
+            provenance = output.with_name("asset_provenance.json")
+            provenance.write_text("[]")
+            return SimpleNamespace(video_path=output, captions_path=captions,
+                provenance_path=provenance, narration_backend="silent")
+
+    monkeypatch.setattr(runtime, "EpisodeRenderer", FakeRenderer)
+    monkeypatch.setenv("AIMN_PRODUCTION_ROOT", str(tmp_path / "production"))
+    script_payload = {
+        "script": {
+            "title": "AIMN handoff test",
+            "hook": "Here is the opening.",
+            "body": "First section.\\n\\nSecond section.",
+            "conclusion": "That is the conclusion.",
+        },
+        "narration_backend": "silent",
+    }
+    engine, factory = setup_db()
+    try:
+        with factory() as db:
+            network = Network(name="CEO production handoff")
+            db.add(network)
+            db.flush()
+            root = AgentTask(
+                network_id=network.id, agent_id="ceo",
+                title="Create a local episode",
+                instruction="Use the supplied script and render a local draft.",
+                input_payload=script_payload, external_action=False, status="queued",
+            )
+            db.add(root)
+            db.commit()
+            root_id = root.id
+
+        assert run_once(factory) == "orchestrating"
+        with factory() as db:
+            producer_task = db.query(AgentTask).filter(
+                AgentTask.parent_task_id == root_id,
+                AgentTask.agent_id == "producer",
+            ).one()
+            assert producer_task.input_payload == script_payload
+
+        for _ in range(5):
+            assert run_once(factory) == "completed"
+
+        with factory() as db:
+            root = db.get(AgentTask, root_id)
+            assert root.status == "completed"
+            producer_result = next(
+                item["result"] for item in root.result["specialist_results"]
+                if item["agent_id"] == "producer"
+            )
+            assert producer_result["mode"] == "orbit_local_production"
+            assert producer_result["render_status"] == "completed"
+            assert Path(producer_result["video_path"]).read_bytes() == b"fake-ceo-video"
+            assert Path(producer_result["captions_path"]).exists()
+            assert Path(producer_result["provenance_path"]).exists()
+            assert Path(producer_result["package_manifest_path"]).exists()
+            assert producer_result["external_writes"] is False
+            assert producer_result["paid_provider_used"] is False
+    finally:
+        engine.dispose()
