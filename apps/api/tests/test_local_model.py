@@ -1,7 +1,5 @@
 import json
 from io import BytesIO
-from types import SimpleNamespace
-
 import pytest
 
 from aimn_api.local_model import LocalModelError, generate_script
@@ -14,13 +12,6 @@ def test_local_model_is_disabled_by_default(monkeypatch):
 
 def test_local_ollama_response_is_validated(monkeypatch):
     monkeypatch.setenv("AIMN_LLM_PROVIDER", "ollama")
-    monkeypatch.setattr("aimn_api.local_model.urlopen", lambda request, timeout: SimpleNamespace(
-        __enter__=lambda self: self,
-        __exit__=lambda self, *args: None,
-        read=lambda limit: json.dumps({"response": json.dumps({
-            "title": "Draft title", "hook": "Hook", "body": "Body", "conclusion": "End"
-        })}).encode()
-    ), raising=True)
     # Use a real context-manager response object for the adapter contract.
     class Response(BytesIO):
         def __enter__(self): return self
