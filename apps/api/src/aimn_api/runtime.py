@@ -14,7 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from aimn_api.models import AgentTask, AgentEvaluation
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
-from orbit.models import Script
+from orbit.models import ResearchBrief, Script
+from orbit.agents.scriptwriter import ScriptWriterAgent
 from orbit.production.episode import EpisodeRenderer
 from orbit.production.package import PublishingPackage
 from orbit.production.render_plan import build_render_plan
@@ -49,14 +50,47 @@ def strategist(t):
     return _brief(t,"channel_strategy_brief",["Define the target audience and viewer problem.","Write a positioning statement and differentiator.","Propose three repeatable content pillars.","Define a small test batch and measurable success criteria.","Review results before scaling."],"Audience demand remains a hypothesis until validated with research and analytics.")
 
 def writer(t):
-    return _brief(t,"script_development_brief",["Define one audience promise and opening hook.","Build a clear beginning, middle and ending.","Attach source notes to factual claims.","Plan visual changes that improve clarity.","Finish with a relevant, non-misleading viewer action."],"This is a drafting brief, not a completed script.")
+    result = _brief(
+        t, "script_development_brief",
+        ["Turn the creator objective into a structured first-draft script.",
+         "Keep unsupported claims explicitly provisional.",
+         "Prepare title, hook, body and conclusion for the Producer handoff.",
+         "Require editorial and source review before publication."],
+        "This is a deterministic local draft. No verified research sources were supplied.",
+    )
+    payload = t.input_payload if isinstance(t.input_payload, dict) else {}
+    topic = str(payload.get("topic") or t.instruction or t.title).strip()[:180]
+    research_summary = str(payload.get("research_summary") or
+        "No verified research evidence was attached to this task. Treat all factual statements as provisional.")
+    brief = ResearchBrief(
+        topic=topic or t.title,
+        summary=research_summary,
+        open_questions=[
+            "Which primary sources verify the key claims?",
+            "What recent evidence could change the conclusion?",
+            "Which statements are interpretation rather than established fact?",
+        ],
+    )
+    script = ScriptWriterAgent().write(brief)
+    result.update({
+        "script": {"title": script.title, "hook": script.hook,
+                   "body": script.body, "conclusion": script.conclusion},
+        "script_status": "draft_unverified",
+        "source_count": len(script.claims),
+        "editorial_review_required": True,
+        "production_handoff_ready": True,
+    })
+    return result
 
 def fact_checker(t):
     return _brief(t,"fact_check_brief",["Extract factual, numerical and time-sensitive claims.","Find primary evidence for material claims.","Check dates, context, units and wording.","Flag unsupported or disputed statements.","Return corrections with evidence."],"No external sources were checked.")
 
-def producer(t):
+def producer(t, generated_script: dict[str, Any] | None = None):
     payload = t.input_payload or {}
     script_data = payload.get("script") if isinstance(payload, dict) else None
+    script_origin = "owner_supplied" if script_data else "writer_agent_draft"
+    if not script_data:
+        script_data = generated_script
     if not script_data:
         return _brief(t,"production_brief",["Convert the approved script into scenes.","Specify narration, on-screen text and visual assets.","Flag rights-sensitive assets.","Prepare edit sequence and quality checklist.","Confirm audio, captions and export settings."],"No script payload was supplied; no media files were generated.")
     required = ("title", "hook", "body", "conclusion")
@@ -88,6 +122,9 @@ def producer(t):
         "provenance_path":str(rendered.provenance_path),
         "package_manifest_path":str(manifest),
         "narration_backend":rendered.narration_backend,
+        "script_origin":script_origin,
+        "script_status":"draft_unverified" if script_origin == "writer_agent_draft" else "owner_supplied_pending_review",
+        "editorial_review_required":True,
         "scene_count":len(plan.scenes),
         "duration_seconds":sum(scene.duration_seconds for scene in plan.scenes),
         "external_writes":False,
@@ -219,6 +256,15 @@ def run_once(session_factory: sessionmaker) -> str:
                 return "orchestrating"
             handler=HANDLERS.get(task.agent_id)
             if handler is None: raise ValueError(f"No local handler registered for agent '{task.agent_id}'")
+            generated_script = None
+            if task.agent_id == "producer" and task.parent_task_id and not (task.input_payload or {}).get("script"):
+                writer_task = db.execute(select(AgentTask).where(
+                    AgentTask.parent_task_id == task.parent_task_id,
+                    AgentTask.agent_id == "writer",
+                    AgentTask.status == "completed",
+                ).order_by(AgentTask.created_at.asc()).limit(1)).scalars().first()
+                if writer_task is not None:
+                    generated_script = (writer_task.result or {}).get("script")
             lessons = db.execute(select(AgentEvaluation).where(
                 AgentEvaluation.network_id == task.network_id,
                 AgentEvaluation.lesson_status == "approved",
@@ -232,7 +278,10 @@ def run_once(session_factory: sessionmaker) -> str:
                  "rating": x.rating, "scope": "network" if x.channel_id is None else "channel"}
                 for x in lessons
             ]}
-            task.result.update(handler(task))
+            if task.agent_id == "producer":
+                task.result.update(producer(task, generated_script=generated_script))
+            else:
+                task.result.update(handler(task))
             task.status="completed"; task.error=None
             db.commit()
             _finalize_ready_orchestrations(db)
