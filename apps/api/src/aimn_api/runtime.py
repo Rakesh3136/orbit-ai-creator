@@ -14,6 +14,7 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session, aliased, sessionmaker
 from aimn_api.models import AgentTask, AgentEvaluation
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
+from aimn_api.local_model import generate_script
 from orbit.models import ResearchBrief, Script
 from orbit.agents.scriptwriter import ScriptWriterAgent
 from orbit.production.episode import EpisodeRenderer
@@ -72,6 +73,9 @@ def writer(t):
         ],
     )
     script = ScriptWriterAgent().write(brief)
+    local_model_script = generate_script(topic, research_summary)
+    if local_model_script:
+        script = Script(**local_model_script)
     result.update({
         "script": {"title": script.title, "hook": script.hook,
                    "body": script.body, "conclusion": script.conclusion},
@@ -79,6 +83,8 @@ def writer(t):
         "source_count": len(script.claims),
         "editorial_review_required": True,
         "production_handoff_ready": True,
+        "draft_provider": "local_ollama" if local_model_script else "deterministic_template",
+        "provider_connected": bool(local_model_script),
     })
     return result
 
