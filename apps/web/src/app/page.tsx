@@ -141,13 +141,20 @@ export default function Home() {
   async function createTask(event: FormEvent) {
     event.preventDefault();
     if (!networkId) return;
+    const scriptFields = [scriptTitle, scriptHook, scriptBody, scriptConclusion].map((value) => value.trim());
+    const hasAnyScript = scriptFields.some(Boolean);
+    const hasCompleteScript = scriptFields.every(Boolean);
+    if ((taskAgent === "producer" || taskAgent === "ceo") && hasAnyScript && !hasCompleteScript) {
+      setError("For a supplied script, fill in title, hook, body and conclusion. Leave all four empty to let the Writer create a draft.");
+      return;
+    }
     await run(async () => {
       await request(`/api/v1/networks/${networkId}/tasks`, {
         method: "POST", body: JSON.stringify({
           agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false,
           input_payload: (taskAgent === "producer" || taskAgent === "ceo") ? {
             narration_backend: "auto",
-            script: { title: scriptTitle, hook: scriptHook, body: scriptBody, conclusion: scriptConclusion },
+            ...(hasCompleteScript ? { script: { title: scriptFields[0], hook: scriptFields[1], body: scriptFields[2], conclusion: scriptFields[3] } } : {}),
           } : {},
         }),
       });
