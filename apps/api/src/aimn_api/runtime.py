@@ -83,6 +83,7 @@ def writer(t):
         "source_count": len(script.claims),
         "editorial_review_required": True,
         "production_handoff_ready": True,
+        "mode": "local_model_inference" if local_model_script else "local_planning_only",
         "draft_provider": "local_ollama" if local_model_script else "deterministic_template",
         "provider_connected": bool(local_model_script),
     })
