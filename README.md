@@ -1,145 +1,73 @@
-# AI Media Network (AIMN) — YouTube Creator Platform
+# AI Media Network (AIMN)
 
-AIMN is the multi-agent control plane and command center for building and operating an original YouTube media business. The repository also contains the earlier ORBIT local media-production toolkit; it is a separate production subsystem and is not yet fully orchestrated by AIMN.
+AIMN is a local-first command center for managing a YouTube media operation with specialist agents. The repository includes the AIMN dashboard/API and the ORBIT local video-production toolkit.
 
-## Current engineering status
+## Quick start (Windows, macOS, Linux)
 
-Implemented:
-- FastAPI control plane, SQLAlchemy models and Alembic migrations.
-- Single-owner sign-in with signed HttpOnly sessions and API-level cookie authentication.
-- Next.js dashboard for networks, channel profiles, agents, tasks and approvals.
-- Versioned agent/skill registry; each planning result records the registry and skill versions used.
-- Zero-paid-provider baseline: no agent tools are enabled, paid-provider budget is USD 0, and external writes are denied.
-- Local deterministic specialist worker.
-- Owner-rated completed-task evaluations with skill and registry provenance.
-- Network/channel-scoped reusable lessons; proposed lessons require explicit owner approval before future-task retrieval.
-- Bounded CEO workflow: research → strategy → writing → fact-checking → production.\n- Deterministic local writer produces a structured, explicitly unverified draft and passes it to the Producer when no owner script is supplied.
-- Parent/child task tracking and result aggregation.
-- Docker Compose stack for PostgreSQL, API, worker and dashboard.
-- AIMN CEO-to-ORBIT handoff for an owner-supplied script: the Producer renders a local MP4, captions, provenance and private publishing package using FFmpeg/local narration.
-- Existing standalone YouTube OAuth/upload/analytics adapters in ORBIT. They are not yet connected to AIMN's dashboard, encrypted credential store or approval service.
+**Requirements:** a computer with Docker Desktop (Windows/macOS) or Docker Engine + Docker Compose v2 (Linux), and Python 3.11 or newer. AIMN is not hosted by GitHub; the computer running Docker hosts the local app.
 
-Not yet production-complete:
-- Live AI provider integration and real CEO reasoning.
-- Live research and source verification.
-- Model fine-tuning or autonomous self-training. The implemented feedback loop retrieves owner-approved text lessons; it does not train model weights.
-- Automatic script generation from the Writer agent and evidence-backed research-to-script automation; the current render handoff requires an owner-supplied script.
-- Secure server-side OAuth connection and encrypted refresh-token storage.
-- YouTube channel identity sync and Analytics integration in AIMN.
-- End-to-end publishing from the AIMN approval workflow.
-- Comment moderation/replies, retry/lease recovery, audit stream, cost controls and production deployment hardening.
-
-## Architecture
-
-```text
-Owner Dashboard
-    │
-    ▼
-AIMN API ── Networks / Channels / Tasks / Approvals
-    │
-    ▼
-AI CEO (bounded deterministic workflow today)
-    ├── Research specialist
-    ├── Strategy specialist
-    ├── Writer specialist
-    ├── Fact-check specialist
-    └── Producer specialist
-    │
-    ▼
-ORBIT Production Toolkit (local Producer handoff for owner-supplied scripts)
-    ├── Script and render planning
-    ├── Local narration and captions
-    ├── FFmpeg rendering
-    └── Asset provenance
-    │
-    ▼
-YouTube adapter (standalone today; approval-gated private uploads)
-```
-
-## Run the AIMN stack with Docker
-
-Requirements: Docker Engine and the Docker Compose plugin.
-
-1. Install Docker Desktop (Windows/macOS) or Docker Engine + Compose (Linux).
-2. From the repository root, run `python scripts/aimn_setup.py` and follow the prompts. It creates a private `.env` with random database/session secrets and a PBKDF2 password hash. It will not overwrite an existing `.env`.
-3. Start the stack:
+1. Download or clone this repository and open a terminal in its root folder.
+2. Run:
 
 ```bash
-docker compose up --build -d
-docker compose ps
+python scripts/aimn_start.py
 ```
 
-Open the dashboard at http://localhost:3000. The API and database are private to the Docker network; only the dashboard is bound to your computer loopback address. The API container applies Alembic migrations before starting; the worker starts after the API is healthy.
+On first run it asks you to create the owner email and password, writes private secrets to `.env`, checks Docker, builds the containers, and starts the app. Keep that terminal/computer and Docker running.
 
-To inspect logs:
+3. Open **http://localhost:3000** on the same computer and sign in with the owner credentials you created.
+
+Useful commands:
 
 ```bash
-docker compose logs -f api worker web
+python scripts/aimn_doctor.py                 # check Docker and private configuration
+docker compose ps                             # see running services
+docker compose logs -f api worker web         # view app logs
+docker compose down                           # stop AIMN without deleting its database
+python scripts/aimn_backup.py backup          # back up the database
+python scripts/aimn_assets.py backup          # back up local media and memory assets
 ```
 
-To stop the stack:
+To start again later, use `docker compose up -d`. To rebuild after code updates, use `docker compose up --build -d`. Do not use `docker compose down -v` unless you intentionally want to delete the database volume.
 
-```bash
-docker compose down
-```
+## Use AIMN on Android
 
-To remove local database data too, use `docker compose down -v` (this permanently deletes the local database volume).
+The dashboard is a Progressive Web App (PWA), not a Play Store app. For a first local test, connect the phone and computer to the same Wi-Fi and open the computer's LAN IP on the phone (for example `http://192.168.1.20:3000`). Local HTTP is for testing only. For installable app behavior and secure owner sessions from outside the computer, deploy behind HTTPS, set `AIMN_SESSION_COOKIE_SECURE=true`, and set `AIMN_WEB_ORIGIN` to the exact public HTTPS origin. Then open the site in Chrome on Android → ⋮ → Install app / Add to Home screen.
 
-The Compose configuration uses secure HttpOnly owner-session cookies. The API and PostgreSQL ports are not published to the host; the web UI binds only to 127.0.0.1. Keep `.env` private. Create a verified database backup with `python scripts/aimn_backup.py backup` and verify it with `python scripts/aimn_backup.py verify PATH_TO_DUMP`. Do not expose the development stack directly to the public internet.
+AIMN is not publicly hosted by this repository. Public deployment requires a server or computer that remains online, HTTPS/reverse-proxy configuration, secure backups, and production hardening. Do not expose the development stack or PostgreSQL/API ports directly to the internet.
 
-## AIMN worker behavior
+## What works today
 
-Create a network and an internal task with agent ID `ceo` from the dashboard or API. The worker creates five specialist planning tasks and aggregates their outputs. Current handlers are deterministic templates; no LLM or live research is connected. Each result records the registry and skill versions used, plus the currently denied tools/write permissions and zero paid-provider allowance. This is a reproducible skill-configuration foundation, not model training. External-action tasks are never dispatched by the worker.
+- Owner login with signed HttpOnly sessions.
+- Networks, channel profiles, agent catalogue, internal task queue and owner approvals.
+- Bounded CEO workflow: research brief → channel strategy → Writer draft → fact-check plan → Producer.
+- Deterministic local templates when no model is configured.
+- Optional Ollama inference for Writer drafts, with no paid API. See [local AI setup](docs/local-ai.md).
+- Owner feedback and approval-gated reusable text lessons. This is retrieval memory, not model-weight training.
+- Local ORBIT rendering of a draft script to MP4, captions and provenance.
+- Database and media/memory backup utilities.
+- PWA metadata and install guidance.
 
-## ORBIT production toolkit
+## Important limitations
 
-Install from the repository root:
+AIMN is a working foundation, not yet a fully autonomous monetized YouTube business. Live web research, source-backed automated fact checking, OAuth connection and encrypted YouTube token storage in AIMN, analytics sync, comment management, and approval-gated publishing are not complete. The standalone ORBIT YouTube helpers are not yet wired into the AIMN dashboard. YouTube publishing is not enabled by the worker. No revenue or monetization result is guaranteed.
 
-```bash
-python -m pip install -e ".[dev]"
-orbit-doctor
-orbit --demo-video --narration auto --output data/demo
-```
+## Zero-budget design
 
-For YouTube CLI dependencies, install `.[youtube]`. The OAuth helper and uploader currently operate independently of AIMN. Keep client secrets and token files out of Git.
+- No paid AI API is required.
+- Local Ollama is optional; without it AIMN uses deterministic local templates.
+- Docker and model downloads use your computer's storage, RAM, CPU and electricity.
+- Free GitHub Actions are used for CI where available; GitHub is source control, not the runtime host.
 
-## Safety
+## Security
 
-- External-action tasks are not dispatched by the AIMN worker.
-- YouTube uploader in the ORBIT subsystem is private-only and requires explicit human approval.
-- Never paste OAuth client JSON, refresh tokens, API keys or passwords into chat or source code.
-- Do not assume YouTube monetization or revenue; eligibility and performance are determined by YouTube and the audience.
+Keep `.env`, OAuth client JSON, access tokens and refresh tokens private. Never commit them or paste them into chat. Local HTTP uses a non-secure cookie for localhost development; use HTTPS and `AIMN_SESSION_COOKIE_SECURE=true` for public deployment. Publishing and other external actions require separate owner approval and are not automatically executed.
 
-## Verification
+## Documentation
 
-GitHub Actions runs backend tests, frontend production build, and a deterministic ORBIT render smoke test. See [the AIMN roadmap](docs/roadmap.md) for remaining release gates.
-
-
-## Agent feedback and lesson memory
-
-See [the feedback and memory guide](docs/agent-feedback-memory.md). Owners can rate completed internal task outputs, record corrections, and propose reusable lessons. Proposed lessons are pending until explicitly approved. Approved lessons are retrieved with network/channel scoping and skill-version provenance. This is local retrieval, not model fine-tuning.
-
-
-## Install AIMN on Android
-
-AIMN is being delivered as an installable Progressive Web App (PWA), so it opens in its own app window with an AIMN icon and does not require Play Store publication. The site must be reachable over HTTPS for full PWA installation.
-
-1. Open the deployed AIMN HTTPS address in Chrome on Android.
-2. Sign in to your owner account.
-3. Tap Install app in the AIMN top bar when Chrome offers it, or open Chrome's three-dot menu and choose Install app / Add to Home screen.
-4. Confirm. AIMN will appear as an app icon and open separately from the browser tab.
-
-For local Docker testing on a computer, open http://localhost:3000 on that computer. To test from a phone on the same Wi-Fi, use the computer's LAN IP (for example, http://192.168.x.x:3000); that HTTP address is for testing and is not sufficient for full PWA installation. Do not expose the development Compose stack directly to the public internet.
-
-The web container now proxies /api/* requests to the private API container. The browser no longer calls localhost:8000, which would incorrectly mean the Android phone itself when AIMN is opened on a phone. For a public HTTPS deployment, set AIMN_SESSION_COOKIE_SECURE=true and set the correct AIMN_WEB_ORIGIN in the deployment environment.
-
-
-## Portability and migration
-
-AIMN is designed to move between Docker hosts without depending on GitHub as its runtime. See the [portability and migration guide](docs/portability-and-migration.md) for the current backup, restore, and host-move procedure, plus known limitations.
-\n\n## Local asset backup and restore\n\nORBIT's local SQLite memory and generated assets can be moved separately from the AIMN PostgreSQL database. Run `python scripts/aimn_assets.py backup` and verify the resulting archive with `python scripts/aimn_assets.py verify PATH_TO_ARCHIVE`. See the [local asset backup guide](docs/local-asset-backup.md).\n
-
-## AIMN to ORBIT local production
-
-The AIMN Producer agent can accept a structured script in an internal task and hand it to ORBIT for local FFmpeg rendering. See [the production handoff guide](docs/aimn-orbit-production-handoff.md). This generates local files only; YouTube upload and publishing remain disabled.
-\n\n## CEO-to-Producer local video handoff\n\nA CEO task can include an owner-supplied script in `input_payload.script` with non-empty `title`, `hook`, `body`, and `conclusion` fields. AIMN forwards that script only to the Producer child task. The Producer renders locally and returns task-scoped video, captions, provenance, and publishing-package artifacts. Use `narration_backend` set to `auto`, `espeak`, or `silent` (default `auto`). The worker does not generate or fact-check the supplied script automatically, fetch media, use paid AI APIs, or publish anything. The render is a local draft; owner review is still required.\n
+- [Optional local AI model](docs/local-ai.md)
+- [Portability and migration](docs/portability-and-migration.md)
+- [Local database backup](docs/portability-and-migration.md)
+- [Local asset backup](docs/local-asset-backup.md)
+- [Agent feedback and memory](docs/agent-feedback-memory.md)
+- [AIMN to ORBIT production handoff](docs/aimn-orbit-production-handoff.md)
