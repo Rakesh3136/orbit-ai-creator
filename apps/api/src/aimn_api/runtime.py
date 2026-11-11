@@ -123,12 +123,20 @@ def _orchestrate(db: Session, task: AgentTask) -> None:
     if definition is None:
         raise ValueError(f"No agent definition registered for '{task.agent_id}'")
     children = []
+    supplied_payload = task.input_payload if isinstance(task.input_payload, dict) else {}
     for agent_id, label in CEO_STEPS[:MAX_CEO_CHILDREN]:
+        # Forward owner-supplied render inputs only to the Producer.
+        producer_payload = {}
+        if agent_id == "producer":
+            for key in ("script", "narration_backend"):
+                if key in supplied_payload:
+                    producer_payload[key] = supplied_payload[key]
         child = AgentTask(
             network_id=task.network_id, channel_id=task.channel_id,
             parent_task_id=task.id, agent_id=agent_id,
             title=f"{label}: {task.title}"[:180],
             instruction=f"Objective: {task.instruction}\nYour role: {label}. Return a useful, specific planning artifact.",
+            input_payload=producer_payload,
             status="queued", external_action=False,
         )
         db.add(child)
