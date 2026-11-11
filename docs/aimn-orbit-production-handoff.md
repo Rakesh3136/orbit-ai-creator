@@ -30,7 +30,7 @@ The script fields are required. The request payload is limited to 32 KB; title, 
 
 The dashboard now shows the Producer script fields when you select the Producer agent. When rendering completes, the task row provides links to the video, captions and provenance. These links use an authenticated API route that only serves known files inside that completed task directory.
 
-The worker stores files beneath `data/production/<network-id>/<task-id>`:
+The CEO workflow runs its Writer before its Producer, even if database timestamps or UUID ordering would otherwise place the Producer first. The Producer then uses the completed Writer draft when no owner-supplied script was attached. If the Writer fails, the workflow records the failure rather than pretending a generated video used a completed script. Writer-generated drafts remain explicitly marked unverified and require editorial review.\n\nThe worker stores files beneath `data/production/<network-id>/<task-id>`:
 
 - `episode.mp4` — locally rendered scene-card video with narration where the local speech engine is available
 - `episode.srt` — captions
