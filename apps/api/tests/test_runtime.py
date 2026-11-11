@@ -212,3 +212,58 @@ def test_ceo_forwards_owner_script_to_producer_and_aggregates_render(tmp_path, m
             assert producer_result["paid_provider_used"] is False
     finally:
         engine.dispose()
+
+
+def test_ceo_uses_writer_draft_when_owner_did_not_supply_script(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import aimn_api.runtime as runtime
+
+    class FakeRenderer:
+        def render(self, plan, output, narration_backend="auto"):
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"writer-generated-video")
+            captions = output.with_suffix(".srt")
+            captions.write_text("captions")
+            provenance = output.with_name("asset_provenance.json")
+            provenance.write_text("[]")
+            return SimpleNamespace(video_path=output, captions_path=captions,
+                provenance_path=provenance, narration_backend="silent")
+
+    monkeypatch.setattr(runtime, "EpisodeRenderer", FakeRenderer)
+    monkeypatch.setenv("AIMN_PRODUCTION_ROOT", str(tmp_path / "production"))
+    engine, factory = setup_db()
+    try:
+        with factory() as db:
+            network = Network(name="Writer to producer handoff")
+            db.add(network)
+            db.flush()
+            root = AgentTask(
+                network_id=network.id, agent_id="ceo",
+                title="Create a draft episode",
+                instruction="Explain how small creators can use open-source AI tools.",
+                input_payload={}, external_action=False, status="queued",
+            )
+            db.add(root)
+            db.commit()
+            root_id = root.id
+
+        assert run_once(factory) == "orchestrating"
+        for _ in range(5):
+            assert run_once(factory) == "completed"
+
+        with factory() as db:
+            root = db.get(AgentTask, root_id)
+            assert root.status == "completed"
+            results = {item["agent_id"]: item["result"] for item in root.result["specialist_results"]}
+            writer_result = results["writer"]
+            producer_result = results["producer"]
+            assert writer_result["production_handoff_ready"] is True
+            assert writer_result["script_status"] == "draft_unverified"
+            assert set(writer_result["script"]) == {"title", "hook", "body", "conclusion"}
+            assert producer_result["render_status"] == "completed"
+            assert producer_result["script_origin"] == "writer_agent_draft"
+            assert producer_result["script_status"] == "draft_unverified"
+            assert producer_result["editorial_review_required"] is True
+            assert Path(producer_result["video_path"]).read_bytes() == b"writer-generated-video"
+    finally:
+        engine.dispose()
