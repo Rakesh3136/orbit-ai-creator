@@ -13,7 +13,7 @@ Implemented:
 - Local deterministic specialist worker.
 - Owner-rated completed-task evaluations with skill and registry provenance.
 - Network/channel-scoped reusable lessons; proposed lessons require explicit owner approval before future-task retrieval.
-- Bounded CEO workflow: research → strategy → writing → fact-checking → production.
+- Bounded CEO workflow: research → strategy → writing → fact-checking → production.\n- Deterministic local writer produces a structured, explicitly unverified draft and passes it to the Producer when no owner script is supplied.
 - Parent/child task tracking and result aggregation.
 - Docker Compose stack for PostgreSQL, API, worker and dashboard.
 - AIMN CEO-to-ORBIT handoff for an owner-supplied script: the Producer renders a local MP4, captions, provenance and private publishing package using FFmpeg/local narration.
