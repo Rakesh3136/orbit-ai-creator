@@ -58,16 +58,58 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       POSTGRES_PASSWORD: ci-only-postgres-password
       AIMN_OWNER_EMAIL: owner@example.test
       AIMN_OWNER_PASSWORD_HASH: ci-placeholder-hash
       AIMN_SESSION_SECRET: ci-only-secret-that-is-longer-than-32-characters
+      AIMN_SESSION_COOKIE_SECURE: "false"
+      AIMN_WEB_ORIGIN: http://localhost:3000
+      AIMN_BIND_HOST: 127.0.0.1
+      AIMN_LLM_PROVIDER: none
     steps:
       - uses: actions/checkout@v4
+      - name: Create a CI-only owner password hash
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import base64, hashlib
+          salt = "ci-only-salt"
+          digest = hashlib.pbkdf2_hmac("sha256", b"ci-owner-password", salt.encode(), 310000)
+          encoded = base64.urlsafe_b64encode(digest).decode().rstrip("=")
+          print("AIMN_OWNER_PASSWORD_HASH=pbkdf2_sha256$310000$" + salt + "$" + encoded)
+          PY
       - name: Validate Compose configuration
         run: docker compose config --quiet
-      - name: Build API image
-        run: docker build -f apps/api/Dockerfile -t aimn-api:ci .
-      - name: Build dashboard image
-        run: docker build -f apps/web/Dockerfile --build-arg NEXT_PUBLIC_AIMN_API_URL=http://localhost:8000 -t aimn-web:ci .
+      - name: Build and start the complete stack
+        run: docker compose up --build -d
+      - name: Wait for dashboard and verify owner login through the web proxy
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:3000/ >/dev/null; then
+              break
+            fi
+            sleep 5
+          done
+          curl --fail --silent http://localhost:3000/ >/dev/null || {
+            docker compose ps
+            docker compose logs --tail=120 api worker web postgres
+            exit 1
+          }
+          python - <<'PY'
+          import http.cookiejar, json, urllib.request
+          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          body = json.dumps({"email": "owner@example.test", "password": "ci-owner-password"}).encode()
+          request = urllib.request.Request("http://localhost:3000/api/v1/auth/login", data=body,
+              headers={"Content-Type": "application/json"}, method="POST")
+          with opener.open(request, timeout=10) as response:
+              assert json.load(response)["authenticated"] is True
+          with opener.open("http://localhost:3000/api/v1/auth/me", timeout=10) as response:
+              assert json.load(response)["email"] == "owner@example.test"
+          with opener.open("http://localhost:3000/api/v1/system", timeout=10) as response:
+              assert json.load(response)["name"] == "Autonomous AI Media Network"
+          print("Dashboard, API proxy, and owner-cookie login smoke test passed.")
+          PY
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
