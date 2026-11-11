@@ -48,6 +48,7 @@ def main() -> int:
         "AIMN_SESSION_TTL_SECONDS=43200",
         "AIMN_SESSION_COOKIE_SECURE=false",
         "AIMN_WEB_ORIGIN=http://localhost:3000",
+        "AIMN_BIND_HOST=0.0.0.0",
         "AIMN_LLM_PROVIDER=none",
         "AIMN_OLLAMA_URL=http://ollama:11434",
         "AIMN_OLLAMA_MODEL=qwen2.5:3b",
