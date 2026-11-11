@@ -46,8 +46,11 @@ def main() -> int:
         "AIMN_OWNER_PASSWORD_HASH=" + password_hash(password),
         "AIMN_SESSION_SECRET=" + secrets.token_urlsafe(48),
         "AIMN_SESSION_TTL_SECONDS=43200",
-        "AIMN_SESSION_COOKIE_SECURE=true",
+        "AIMN_SESSION_COOKIE_SECURE=false",
         "AIMN_WEB_ORIGIN=http://localhost:3000",
+        "AIMN_LLM_PROVIDER=none",
+        "AIMN_OLLAMA_URL=http://ollama:11434",
+        "AIMN_OLLAMA_MODEL=qwen2.5:3b",
         "",
     ]
     target.write_text("\n".join(values), encoding="utf-8")
