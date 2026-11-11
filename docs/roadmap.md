@@ -51,11 +51,11 @@
 - [ ] Content calendar and experiment tracking.
 
 ## Milestone 6 — Production and YouTube operations
-- [ ] Script generation and quality workflows.
+- [x] Deterministic local writer creates a structured draft script and hands it to the Producer; drafts remain explicitly unverified.\n- [ ] Evidence-backed script generation and quality workflows.
 - [ ] Media asset and render job management.
 - [x] Producer task can hand a supplied script to ORBIT for local FFmpeg rendering, captions, provenance and a private-by-default package.
 - [x] Dashboard Producer form and authenticated task-scoped artifact downloads.
-- [ ] Existing production pipeline adapters and provenance.
+- [x] Existing production pipeline adapter and provenance for owner-supplied or writer-generated local drafts.
 - [ ] OAuth connection and YouTube Data API integration.
 - [ ] Upload preparation, metadata validation and explicit action approval.
 - [ ] Comment moderation/reply workflow with owner review.
