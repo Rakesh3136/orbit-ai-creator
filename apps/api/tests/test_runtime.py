@@ -62,7 +62,23 @@ def test_unknown_agent_handler_marks_task_failed():
             assert "No local handler" in task.error
     finally: engine.dispose()
 
-def test_ceo_creates_bounded_specialist_tasks_and_aggregates_results():
+def test_ceo_creates_bounded_specialist_tasks_and_aggregates_results(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    import aimn_api.runtime as runtime
+
+    class FakeRenderer:
+        def render(self, plan, output, narration_backend="auto"):
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"ceo-generated-video")
+            captions = output.with_suffix(".srt")
+            captions.write_text("captions")
+            provenance = output.with_name("asset_provenance.json")
+            provenance.write_text("[]")
+            return SimpleNamespace(video_path=output, captions_path=captions,
+                provenance_path=provenance, narration_backend="silent")
+
+    monkeypatch.setattr(runtime, "EpisodeRenderer", FakeRenderer)
+    monkeypatch.setenv("AIMN_PRODUCTION_ROOT", str(tmp_path / "production"))
     engine,factory=setup_db()
     try:
         root_id=add_task(factory,agent_id="ceo")
