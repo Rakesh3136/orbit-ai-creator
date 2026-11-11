@@ -16,14 +16,14 @@ Implemented:
 - Bounded CEO workflow: research → strategy → writing → fact-checking → production.
 - Parent/child task tracking and result aggregation.
 - Docker Compose stack for PostgreSQL, API, worker and dashboard.
-- Existing ORBIT local episode production toolkit (script planning, narration, captions, FFmpeg rendering and provenance).
+- AIMN CEO-to-ORBIT handoff for an owner-supplied script: the Producer renders a local MP4, captions, provenance and private publishing package using FFmpeg/local narration.
 - Existing standalone YouTube OAuth/upload/analytics adapters in ORBIT. They are not yet connected to AIMN's dashboard, encrypted credential store or approval service.
 
 Not yet production-complete:
 - Live AI provider integration and real CEO reasoning.
 - Live research and source verification.
 - Model fine-tuning or autonomous self-training. The implemented feedback loop retrieves owner-approved text lessons; it does not train model weights.
-- AIMN-to-ORBIT production handoff.
+- Automatic script generation from the Writer agent and evidence-backed research-to-script automation; the current render handoff requires an owner-supplied script.
 - Secure server-side OAuth connection and encrypted refresh-token storage.
 - YouTube channel identity sync and Analytics integration in AIMN.
 - End-to-end publishing from the AIMN approval workflow.
@@ -46,7 +46,7 @@ AI CEO (bounded deterministic workflow today)
     └── Producer specialist
     │
     ▼
-ORBIT Production Toolkit (standalone today)
+ORBIT Production Toolkit (local Producer handoff for owner-supplied scripts)
     ├── Script and render planning
     ├── Local narration and captions
     ├── FFmpeg rendering
@@ -142,3 +142,4 @@ AIMN is designed to move between Docker hosts without depending on GitHub as its
 ## AIMN to ORBIT local production
 
 The AIMN Producer agent can accept a structured script in an internal task and hand it to ORBIT for local FFmpeg rendering. See [the production handoff guide](docs/aimn-orbit-production-handoff.md). This generates local files only; YouTube upload and publishing remain disabled.
+\n\n## CEO-to-Producer local video handoff\n\nA CEO task can include an owner-supplied script in `input_payload.script` with non-empty `title`, `hook`, `body`, and `conclusion` fields. AIMN forwards that script only to the Producer child task. The Producer renders locally and returns task-scoped video, captions, provenance, and publishing-package artifacts. Use `narration_backend` set to `auto`, `espeak`, or `silent` (default `auto`). The worker does not generate or fact-check the supplied script automatically, fetch media, use paid AI APIs, or publish anything. The render is a local draft; owner review is still required.\n
