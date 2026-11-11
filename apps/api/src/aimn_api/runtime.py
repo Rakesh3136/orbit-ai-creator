@@ -10,8 +10,8 @@ import os
 from pathlib import Path
 from collections.abc import Callable
 from typing import Any
-from sqlalchemy import select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import exists, or_, select
+from sqlalchemy.orm import Session, aliased, sessionmaker
 from aimn_api.models import AgentTask, AgentEvaluation
 from aimn_api.agent_registry import REGISTRY_VERSION, get_agent
 from orbit.models import ResearchBrief, Script
@@ -234,7 +234,28 @@ def _finalize_ready_orchestrations(db: Session) -> bool:
     return changed
 
 def claim_next(db: Session) -> AgentTask | None:
-    stmt=(select(AgentTask).where(AgentTask.status=="queued",AgentTask.external_action.is_(False))
+    # A CEO producer child may consume the writer's draft. Do not let it run
+    # before that writer has reached a terminal state: UUID ordering is not a
+    # workflow dependency and can otherwise make production silently skip the
+    # generated script when several children share a creation timestamp.
+    writer_task = aliased(AgentTask)
+    writer_still_pending = exists(
+        select(1).select_from(writer_task).where(
+            writer_task.parent_task_id == AgentTask.parent_task_id,
+            writer_task.agent_id == "writer",
+            writer_task.status.in_(("queued", "running", "awaiting_approval")),
+        )
+    )
+    producer_ready = or_(
+        AgentTask.agent_id != "producer",
+        AgentTask.parent_task_id.is_(None),
+        ~writer_still_pending,
+    )
+    stmt=(select(AgentTask).where(
+              AgentTask.status=="queued",
+              AgentTask.external_action.is_(False),
+              producer_ready,
+          )
           .order_by(AgentTask.created_at.asc(),AgentTask.id.asc()).limit(1).with_for_update(skip_locked=True))
     task=db.execute(stmt).scalars().first()
     if task is None: return None
