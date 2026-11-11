@@ -24,7 +24,7 @@ services:
       AIMN_OWNER_PASSWORD_HASH: ${AIMN_OWNER_PASSWORD_HASH:?Generate password hash}
       AIMN_SESSION_SECRET: ${AIMN_SESSION_SECRET:?Set a random session secret}
       AIMN_SESSION_TTL_SECONDS: ${AIMN_SESSION_TTL_SECONDS:-43200}
-      AIMN_SESSION_COOKIE_SECURE: ${AIMN_SESSION_COOKIE_SECURE:-true}
+      AIMN_SESSION_COOKIE_SECURE: ${AIMN_SESSION_COOKIE_SECURE:-false}
       AIMN_WEB_ORIGIN: ${AIMN_WEB_ORIGIN:-http://localhost:3000}
       AIMN_PRODUCTION_ROOT: /app/data/production
     volumes:
@@ -48,6 +48,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://aimn:${POSTGRES_PASSWORD}@postgres:5432/aimn
       AIMN_PRODUCTION_ROOT: /app/data/production
+      AIMN_LLM_PROVIDER: ${AIMN_LLM_PROVIDER:-none}
+      AIMN_OLLAMA_URL: ${AIMN_OLLAMA_URL:-http://ollama:11434}
+      AIMN_OLLAMA_MODEL: ${AIMN_OLLAMA_MODEL:-qwen2.5:3b}
     volumes:
       - ./data:/app/data
     depends_on:
@@ -68,5 +71,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    volumes:
+      - aimn_ollama_data:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   aimn_postgres_data:
+  aimn_ollama_data:
