@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from aimn_api.models import AgentTask, Base, Network
-from aimn_api.runtime import run_once, producer
+from aimn_api.runtime import claim_next, run_once, producer
 
 def setup_db():
     engine=create_engine("sqlite://",connect_args={"check_same_thread":False},poolclass=StaticPool)
@@ -281,5 +281,56 @@ def test_ceo_uses_writer_draft_when_owner_did_not_supply_script(tmp_path, monkey
             assert producer_result["script_status"] == "draft_unverified"
             assert producer_result["editorial_review_required"] is True
             assert Path(producer_result["video_path"]).read_bytes() == b"writer-generated-video"
+    finally:
+        engine.dispose()
+
+
+def test_ceo_producer_waits_until_writer_task_finishes():
+    from datetime import timedelta
+    from aimn_api.models import utc_now
+
+    engine, factory = setup_db()
+    try:
+        with factory() as db:
+            network = Network(name="Ordered production workflow")
+            db.add(network)
+            db.flush()
+            parent = AgentTask(
+                network_id=network.id, agent_id="ceo", title="CEO workflow",
+                instruction="Create a video", external_action=False, status="running",
+            )
+            db.add(parent)
+            db.flush()
+            now = utc_now()
+            # Deliberately make Producer older than Writer. The worker must
+            # respect the dependency, not rely on UUID/timestamp ordering.
+            producer_task = AgentTask(
+                network_id=network.id, parent_task_id=parent.id,
+                agent_id="producer", title="Render episode", instruction="Render writer draft",
+                input_payload={}, external_action=False, status="queued",
+                created_at=now - timedelta(seconds=10),
+            )
+            writer_task = AgentTask(
+                network_id=network.id, parent_task_id=parent.id,
+                agent_id="writer", title="Write script", instruction="Draft script",
+                input_payload={}, external_action=False, status="queued",
+                created_at=now,
+            )
+            db.add_all([producer_task, writer_task])
+            db.commit()
+            producer_id, writer_id = producer_task.id, writer_task.id
+
+        with factory() as db:
+            claimed = claim_next(db)
+            assert claimed is not None
+            assert claimed.id == writer_id
+            claimed.status = "completed"
+            claimed.result = {"script": {"title": "Ready", "hook": "Hook", "body": "Body", "conclusion": "End"}}
+            db.commit()
+
+        with factory() as db:
+            claimed = claim_next(db)
+            assert claimed is not None
+            assert claimed.id == producer_id
     finally:
         engine.dispose()
