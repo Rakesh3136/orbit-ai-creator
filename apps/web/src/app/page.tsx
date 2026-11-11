@@ -145,7 +145,7 @@ export default function Home() {
       await request(`/api/v1/networks/${networkId}/tasks`, {
         method: "POST", body: JSON.stringify({
           agent_id: taskAgent, title: taskTitle, instruction: taskInstruction, external_action: false,
-          input_payload: taskAgent === "producer" ? {
+          input_payload: (taskAgent === "producer" || taskAgent === "ceo") ? {
             narration_backend: "auto",
             script: { title: scriptTitle, hook: scriptHook, body: scriptBody, conclusion: scriptConclusion },
           } : {},
@@ -254,8 +254,8 @@ export default function Home() {
                 <input placeholder="Task title" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required minLength={3} />
                 <select value={taskAgent} onChange={(e) => setTaskAgent(e.target.value)}>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
                 <textarea placeholder="Describe the research or work to perform…" value={taskInstruction} onChange={(e) => setTaskInstruction(e.target.value)} required minLength={5} />
-                {taskAgent === "producer" && <>
-                  <p className="form-help">Paste the script to render locally. AIMN creates a scene-card video, narration, subtitles and an asset-provenance file. Nothing is uploaded.</p>
+                {(taskAgent === "producer" || taskAgent === "ceo") && <>
+                  <p className="form-help">{taskAgent === "ceo" ? "Attach your completed script to the CEO workflow. The CEO will coordinate its specialists and pass the script to the Producer for local video rendering." : "Paste the script to render locally. AIMN creates a scene-card video, narration, subtitles and an asset-provenance file."} Nothing is uploaded or published.</p>
                   <input placeholder="Episode title" value={scriptTitle} onChange={(e) => setScriptTitle(e.target.value)} required maxLength={180} />
                   <textarea placeholder="Opening hook" value={scriptHook} onChange={(e) => setScriptHook(e.target.value)} required maxLength={2000} />
                   <textarea placeholder="Script body (use a blank line between scenes)" value={scriptBody} onChange={(e) => setScriptBody(e.target.value)} required maxLength={12000} />
