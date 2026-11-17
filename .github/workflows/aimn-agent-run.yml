@@ -1,0 +1,96 @@
+name: AIMN agent run
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_type:
+        description: What should AIMN prepare?
+        required: true
+        type: choice
+        options:
+          - research
+          - strategy
+          - script
+          - production_check
+      instruction:
+        description: Describe the task (do not include passwords, tokens, or private data).
+        required: true
+        type: string
+      access_profile:
+        description: Application permission policy for this run.
+        required: true
+        type: choice
+        default: restricted
+        options:
+          - restricted
+          - balanced
+          - expanded
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aimn-agent-run
+  cancel-in-progress: false
+
+jobs:
+  run-agent:
+    name: Run bounded AIMN planning agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out AIMN
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Execute bounded task
+        env:
+          TASK_TYPE: ${{ inputs.task_type }}
+          TASK_INSTRUCTION: ${{ inputs.instruction }}
+          ACCESS_PROFILE: ${{ inputs.access_profile }}
+        run: |
+          python scripts/aimn_github_agent.py \
+            --task-type "$TASK_TYPE" \
+            --instruction "$TASK_INSTRUCTION" \
+            --access-profile "$ACCESS_PROFILE"
+      - name: Keep a downloadable run record
+        uses: actions/upload-artifact@v4
+        with:
+          name: aimn-run-record-${{ github.run_id }}
+          path: aimn-state/runs/*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  persist-run-record:
+    name: Persist approved internal run record
+    needs: run-agent
+    if: inputs.access_profile != 'restricted'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out AIMN
+        uses: actions/checkout@v4
+        with:
+          ref: feature/aimn-foundation
+      - name: Download run record
+        uses: actions/download-artifact@v4
+        with:
+          name: aimn-run-record-${{ github.run_id }}
+          path: aimn-state/runs
+      - name: Commit internal run record
+        env:
+          TASK_TYPE: ${{ inputs.task_type }}
+          ACCESS_PROFILE: ${{ inputs.access_profile }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add aimn-state/runs/
+          git commit -m "Record AIMN ${TASK_TYPE} run (${ACCESS_PROFILE})"
+          git push
