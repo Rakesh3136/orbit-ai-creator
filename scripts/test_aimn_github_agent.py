@@ -41,7 +41,7 @@ class GitHubAgentRunnerTests(unittest.TestCase):
 
     def test_balanced_profile_allows_only_internal_run_record_persistence(self):
         record = self.run_task("balanced")
-        self.assertTrue(record["permissions"]["repository_writes"])
+        self.assertNotIn("instruction", record)\n        self.assertEqual(record["instruction_chars"], len("Plan a test channel about science"))\n        self.assertTrue(record["permissions"]["repository_writes"])
         self.assertFalse(record["permissions"]["external_actions"])
         self.assertTrue(record["safety"]["owner_approval_required_for_sensitive_actions"])
 
