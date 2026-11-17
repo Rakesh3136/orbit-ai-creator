@@ -91,7 +91,8 @@ def main() -> int:
         "execution": "github_actions_ephemeral_runner",
         "mode": "bounded_planning_only",
         "task_type": args.task_type,
-        "instruction": instruction,
+        "instruction_chars": len(instruction),
+        "input_storage": "raw task text is not stored in the public run record",
         "access_profile": args.access_profile,
         "permissions": profile,
         "agent_output": {
