@@ -48,11 +48,15 @@ jobs:
         with:
           python-version: "3.11"
       - name: Execute bounded task
+        env:
+          TASK_TYPE: ${{ inputs.task_type }}
+          TASK_INSTRUCTION: ${{ inputs.instruction }}
+          ACCESS_PROFILE: ${{ inputs.access_profile }}
         run: |
           python scripts/aimn_github_agent.py \
-            --task-type "${{ inputs.task_type }}" \
-            --instruction "${{ inputs.instruction }}" \
-            --access-profile "${{ inputs.access_profile }}"
+            --task-type "$TASK_TYPE" \
+            --instruction "$TASK_INSTRUCTION" \
+            --access-profile "$ACCESS_PROFILE"
       - name: Persist run record
         env:
           TASK_TYPE: ${{ inputs.task_type }}
