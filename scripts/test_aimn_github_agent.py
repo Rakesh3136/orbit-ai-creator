@@ -51,6 +51,16 @@ class GitHubAgentRunnerTests(unittest.TestCase):
         self.assertFalse(record["safety"]["publishing_enabled"])
         self.assertTrue(any("literal unlimited access" in x for x in record["limitations"]))
 
+    def test_credential_like_instruction_is_rejected(self):
+        result = subprocess.run(
+            [sys.executable, str(RUNNER), "--task-type", "research",
+             "--instruction", "access_token=ghp_abcdefghijklmnopqrstuvwxyz123456",
+             "--output-dir", tempfile.gettempdir()],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("credential", result.stderr.lower())
+
     def test_empty_instruction_is_rejected(self):
         result = subprocess.run(
             [sys.executable, str(RUNNER), "--task-type", "research",
