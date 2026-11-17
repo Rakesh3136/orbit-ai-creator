@@ -29,7 +29,7 @@ main{width:min(760px,100%);margin:auto;padding:24px 16px 56px}.brand{display:fle
 <select id="profile">
 <option value="restricted">Restricted — planning only</option>
 <option value="balanced">Balanced — planning + saved run records</option>
-<option value="expanded">Expanded — broader internal planning, external actions still blocked</option>
+<option value="expanded">Expanded — same current write scope; external actions blocked</option>
 </select>
 <div class="row" style="margin-top:16px"><button id="connect">Connect GitHub</button></div>
 </div>
@@ -80,7 +80,7 @@ main{width:min(760px,100%);margin:auto;padding:24px 16px 56px}.brand{display:fle
     $("setup").classList.add("hidden");$("connected").classList.remove("hidden");$("workspace").classList.remove("hidden");$("activity").classList.remove("hidden");
     $("repoBadge").textContent=repoName();$("profileBadge").textContent=profileNames[$("profile").value];
     const p=$("profile").value;
-    $("permissionSummary").textContent=p==="restricted"?"Restricted: prepare internal plans only.":p==="balanced"?"Balanced: internal plans and repository run-record persistence.":"Expanded: broader internal planning only. External actions remain disabled.";
+    $("permissionSummary").textContent=p==="restricted"?"Restricted: prepare internal plans only.":p==="balanced"?"Balanced: internal plans and saved run records.":"Expanded: current saved-record scope; future internal tools may be added after review. External actions remain disabled.";
   }
   function disconnect(){
     token="";$("token").value="";$("setup").classList.remove("hidden");$("connected").classList.add("hidden");$("workspace").classList.add("hidden");$("activity").classList.add("hidden");$("runs").textContent="Disconnected.";
@@ -97,7 +97,7 @@ main{width:min(760px,100%);margin:auto;padding:24px 16px 56px}.brand{display:fle
     finally{$("connect").disabled=false;}
   });
   $("disconnect").addEventListener("click",disconnect);
-  $("profile").addEventListener("change",()=>{if(token){$("profileBadge").textContent=profileNames[$("profile").value];const p=$("profile").value;$("permissionSummary").textContent=p==="restricted"?"Restricted: prepare internal plans only.":p==="balanced"?"Balanced: internal plans and repository run-record persistence.":"Expanded: broader internal planning only. External actions remain disabled."; }});
+  $("profile").addEventListener("change",()=>{if(token){$("profileBadge").textContent=profileNames[$("profile").value];const p=$("profile").value;$("permissionSummary").textContent=p==="restricted"?"Restricted: prepare internal plans only.":p==="balanced"?"Balanced: internal plans and saved run records.":"Expanded: current saved-record scope; future internal tools may be added after review. External actions remain disabled."; }});
   $("launch").addEventListener("click",async()=>{
     const instruction=$("instruction").value.trim();if(!instruction){$("taskStatus").textContent="Enter a task first."; $("taskStatus").classList.remove("hidden");return;}
     $("launch").disabled=true;$("taskStatus").className="status";$("taskStatus").classList.remove("hidden");$("taskStatus").textContent="Sending task to GitHub Actions…";
