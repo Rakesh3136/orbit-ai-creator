@@ -10,6 +10,11 @@ on:
       - "docs/github-only-operation.md"
       - ".github/workflows/aimn-agent-run.yml"
       - ".github/workflows/aimn-pages.yml"
+      - "scripts/**"
+      - "apps/console/**"
+      - "docs/github-only-operation.md"
+      - ".github/workflows/aimn-agent-run.yml"
+      - ".github/workflows/aimn-pages.yml"
       - "apps/web/**"
       - "docker-compose.yml"
       - ".env.example"
@@ -30,6 +35,18 @@ permissions:
   contents: read
 
 jobs:
+  github-runner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test GitHub-only agent permission profiles
+        run: python scripts/test_aimn_github_agent.py
+      - name: Compile GitHub-only runner
+        run: python -m py_compile scripts/aimn_github_agent.py
+
   api:
     runs-on: ubuntu-latest
     defaults:
