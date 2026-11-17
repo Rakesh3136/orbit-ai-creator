@@ -36,6 +36,16 @@ The dashboard is a Progressive Web App (PWA), not a Play Store app. The local la
 
 AIMN is not publicly hosted by this repository. Public deployment requires a server or computer that remains online, HTTPS/reverse-proxy configuration, secure backups, and production hardening. Do not expose the development stack or PostgreSQL/API ports directly to the internet.
 
+## GitHub-only mobile console (early foundation)
+
+A separate mobile-first owner console is being developed for GitHub Pages. It dispatches bounded AIMN jobs through GitHub Actions; it does not require a computer to stay on. The console source is in [apps/console](apps/console) and the operating model is in [docs/github-only-operation.md](docs/github-only-operation.md).
+
+After the repository owner enables **Settings → Pages → Build and deployment → Source: GitHub Actions**, the `Deploy AIMN owner console` workflow publishes it. The expected project site is `https://rakesh3136.github.io/orbit-ai-creator/` once the first deployment succeeds.
+
+The console requires a fine-grained token scoped to this repository with **Actions: Read and write** (and repository Contents: Read-only for future run-record browsing). It holds the token in page memory only; it is not stored in localStorage or sent in task prompts. Re-enter it after a page reload and revoke it in GitHub settings when no longer needed. Never use a classic all-repositories token.
+
+The permission choices (restricted, balanced, expanded) are application policies, not extra GitHub privileges. Even expanded mode does not enable external actions. The current Actions runner creates planning records only: no live research, LLM inference, YouTube OAuth, uploads, comments, or publishing. This console is an early GitHub-only foundation, not the completed autonomous creator system.
+
 ## What works today
 
 - Owner login with signed HttpOnly sessions.
