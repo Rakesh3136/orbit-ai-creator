@@ -121,6 +121,7 @@ main{width:min(760px,100%);margin:auto;padding:24px 16px 56px}.brand{display:fle
   $("refresh").addEventListener("click",refreshRuns);
   window.addEventListener("pagehide",()=>{token="";});
 })();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
 </script>
 </body>
 </html>
