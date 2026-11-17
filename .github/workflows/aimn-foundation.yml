@@ -5,6 +5,11 @@ on:
     branches: ["feature/aimn-foundation"]
     paths:
       - "apps/api/**"
+      - "scripts/**"
+      - "apps/console/**"
+      - "docs/github-only-operation.md"
+      - ".github/workflows/aimn-agent-run.yml"
+      - ".github/workflows/aimn-pages.yml"
       - "apps/web/**"
       - "docker-compose.yml"
       - ".env.example"
