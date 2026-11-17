@@ -72,6 +72,14 @@ def main() -> int:
     instruction = re.sub(r"\s+", " ", args.instruction).strip()
     if not instruction or len(instruction) > 2000:
         parser.error("instruction must contain 1–2000 non-whitespace characters")
+    secret_pattern = re.compile(
+        r"\b(?:github_pat_|gh[pousr]_|sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\.[0-9A-Za-z_-]{20,})"
+        r"|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+        r"|\b(?:password|client_secret|access_token|refresh_token)\s*[:=]\s*\S+",
+        re.IGNORECASE,
+    )
+    if secret_pattern.search(instruction):
+        parser.error("instruction appears to contain a credential; remove it before running AIMN")
 
     now = datetime.now(timezone.utc)
     run_id = os.getenv("GITHUB_RUN_ID", f"local-{now.strftime('%Y%m%dT%H%M%SZ')}")
