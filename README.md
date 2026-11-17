@@ -176,6 +176,6 @@ After the owner enables **Settings → Pages → Build and deployment → Source
 
 `https://rakesh3136.github.io/orbit-ai-creator/`
 
-The first-run screen connects a fine-grained token scoped to this repository (Actions read/write; Contents read-only), held in page memory only. The owner selects restricted, balanced, or expanded policy. Restricted runs keep an artifact for 30 days; balanced/expanded runs additionally commit an internal run record. No profile grants unlimited access. YouTube publishing, messaging, spending, and account changes remain disabled and require separate integrations and approval gates.
+The repository is public, so workflow details, artifacts, and saved run records may be visible to anyone; submit only public, non-sensitive tasks. The runner omits raw task text from its JSON record. The first-run screen connects a fine-grained token scoped to this repository (Actions read/write; Contents read-only), held in page memory only. The owner selects restricted, balanced, or expanded policy. Restricted runs keep an artifact for 30 days; balanced/expanded runs additionally commit an internal run record. No profile grants unlimited access. YouTube publishing, messaging, spending, and account changes remain disabled and require separate integrations and approval gates.
 
 **Current GitHub-only capability:** planning records only. Live research, model inference, YouTube OAuth, analytics, comments, and publishing are not yet integrated. See [GitHub-only operation and completion checklist](docs/github-only-operation.md).
