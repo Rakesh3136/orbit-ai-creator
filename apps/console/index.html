@@ -101,6 +101,8 @@ main{width:min(760px,100%);margin:auto;padding:24px 16px 56px}.brand{display:fle
   $("profile").addEventListener("change",()=>{if(token){$("profileBadge").textContent=profileNames[$("profile").value];const p=$("profile").value;$("permissionSummary").textContent=p==="restricted"?"Restricted: prepare internal plans only.":p==="balanced"?"Balanced: internal plans and saved run records.":"Expanded: current saved-record scope; future internal tools may be added after review. External actions remain disabled."; }});
   $("launch").addEventListener("click",async()=>{
     const instruction=$("instruction").value.trim();if(!instruction){$("taskStatus").textContent="Enter a task first."; $("taskStatus").classList.remove("hidden");return;}
+    const secretLike=/(?:github_pat_|gh[pousr]_|sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|ya29\.[0-9A-Za-z_-]{20,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:password|client_secret|access_token|refresh_token)\s*[:=]\s*\S+)/i;
+    if(secretLike.test(instruction)){ $("taskStatus").textContent="This looks like a credential. Remove it; never send secrets as task instructions."; $("taskStatus").classList.remove("hidden"); return; }
     $("launch").disabled=true;$("taskStatus").className="status";$("taskStatus").classList.remove("hidden");$("taskStatus").textContent="Sending task to GitHub Actions…";
     try{
       await gh("/actions/workflows/aimn-agent-run.yml/dispatches",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ref:branchName(),inputs:{task_type:$("taskType").value,instruction,access_profile:$("profile").value}})});
