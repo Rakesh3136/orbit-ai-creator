@@ -5,31 +5,31 @@ on:
     branches: ["feature/aimn-foundation"]
     paths:
       - "apps/api/**"
-      - "scripts/**"
-      - "apps/console/**"
-      - "docs/github-only-operation.md"
-      - ".github/workflows/aimn-agent-run.yml"
-      - ".github/workflows/aimn-pages.yml"
-      - "scripts/**"
-      - "apps/console/**"
-      - "docs/github-only-operation.md"
-      - ".github/workflows/aimn-agent-run.yml"
-      - ".github/workflows/aimn-pages.yml"
       - "apps/web/**"
+      - "apps/console/**"
+      - "scripts/**"
+      - "docs/github-only-operation.md"
       - "docker-compose.yml"
       - ".env.example"
       - ".dockerignore"
       - "README.md"
       - ".github/workflows/aimn-foundation.yml"
+      - ".github/workflows/aimn-agent-run.yml"
+      - ".github/workflows/aimn-pages.yml"
   pull_request:
     paths:
       - "apps/api/**"
       - "apps/web/**"
+      - "apps/console/**"
+      - "scripts/**"
+      - "docs/github-only-operation.md"
       - "docker-compose.yml"
       - ".env.example"
       - ".dockerignore"
       - "README.md"
       - ".github/workflows/aimn-foundation.yml"
+      - ".github/workflows/aimn-agent-run.yml"
+      - ".github/workflows/aimn-pages.yml"
 
 permissions:
   contents: read
