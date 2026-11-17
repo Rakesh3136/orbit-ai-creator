@@ -1,0 +1,42 @@
+name: AIMN GitHub console checks
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/console/**"
+      - "scripts/aimn_github_agent.py"
+      - "scripts/test_aimn_github_agent.py"
+      - "scripts/test_aimn_console.py"
+      - ".github/workflows/aimn-console-ci.yml"
+      - ".github/workflows/aimn-agent-run.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "apps/console/**"
+      - "scripts/aimn_github_agent.py"
+      - "scripts/test_aimn_github_agent.py"
+      - "scripts/test_aimn_console.py"
+      - ".github/workflows/aimn-console-ci.yml"
+      - ".github/workflows/aimn-agent-run.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Test agent permission and secret-input controls
+        run: python scripts/test_aimn_github_agent.py
+      - name: Validate PWA manifest and console JavaScript
+        run: python scripts/test_aimn_console.py
+      - name: Compile agent runner
+        run: python -m py_compile scripts/aimn_github_agent.py
