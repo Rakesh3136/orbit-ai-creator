@@ -44,7 +44,7 @@ After the repository owner enables **Settings → Pages → Build and deployment
 
 The console requires a fine-grained token scoped to this repository with **Actions: Read and write** (and repository Contents: Read-only for future run-record browsing). It holds the token in page memory only; it is not stored in localStorage or sent in task prompts. Re-enter it after a page reload and revoke it in GitHub settings when no longer needed. Never use a classic all-repositories token.
 
-The permission choices (restricted, balanced, expanded) are application policies, not extra GitHub privileges. Even expanded mode does not enable external actions. The current Actions runner creates planning records only: no live research, LLM inference, YouTube OAuth, uploads, comments, or publishing. This console is an early GitHub-only foundation, not the completed autonomous creator system.
+Restricted runs keep the plan as a downloadable Actions artifact; balanced/expanded runs additionally commit the run record under `aimn-state/runs/`. The planning job receives contents:read; only the separate persistence job gets contents:write, and it is skipped for restricted runs. Expanded currently has the same write scope as balanced and does not enable external actions. The current Actions runner creates planning records only: no live research, LLM inference, YouTube OAuth, uploads, comments, or publishing. This console is an early GitHub-only foundation, not the completed autonomous creator system.
 
 ## What works today
 
