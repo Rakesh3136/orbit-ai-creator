@@ -23,7 +23,7 @@ The existing Docker/FastAPI/PostgreSQL application remains a separate local/serv
 - `balanced`: internal planning plus repository run-record persistence.
 - `expanded`: expanded internal planning workflow. External actions remain disabled until separately implemented and explicitly approved.
 
-The workflow enforces these profiles with separate job permissions: the planning job has contents:read; the separate persistence job receives contents:write only for balanced/expanded runs. The browser token is only used to dispatch/read Actions; it does not get repository write access from the console. GitHub Actions token permissions remain narrowly declared in the workflow. A future web console must never ask for a classic all-repositories PAT. If browser authorization is introduced, use a fine-grained, single-repository token, keep it in memory only, never send it to task prompts, and provide a clear revoke/disconnect control.
+The workflow enforces these profiles with separate job permissions: the planning job has `contents:read`; the separate persistence job receives `contents:write` only for balanced/expanded runs. The browser token is only used to dispatch/read Actions; it does not get repository write access from the console. The mobile console uses a fine-grained, single-repository token held in page memory only; it is not stored in browser storage and is never included in task prompts. Disconnect or close the page to clear it, and revoke it in GitHub settings when no longer needed. Never use a classic all-repositories PAT.
 
 ## Non-negotiable approval gates
 
