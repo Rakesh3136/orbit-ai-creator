@@ -1,0 +1,68 @@
+name: AIMN agent run
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_type:
+        description: What should AIMN prepare?
+        required: true
+        type: choice
+        options:
+          - research
+          - strategy
+          - script
+          - production_check
+      instruction:
+        description: Describe the task (do not include passwords, tokens, or private data).
+        required: true
+        type: string
+      access_profile:
+        description: Application permission policy for this run.
+        required: true
+        type: choice
+        default: restricted
+        options:
+          - restricted
+          - balanced
+          - expanded
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aimn-agent-run
+  cancel-in-progress: false
+
+jobs:
+  run-agent:
+    name: Run bounded AIMN planning agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out AIMN
+        uses: actions/checkout@v4
+        with:
+          ref: feature/aimn-foundation
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Execute bounded task
+        run: |
+          python scripts/aimn_github_agent.py \
+            --task-type "${{ inputs.task_type }}" \
+            --instruction "${{ inputs.instruction }}" \
+            --access-profile "${{ inputs.access_profile }}"
+      - name: Persist run record
+        env:
+          TASK_TYPE: ${{ inputs.task_type }}
+          ACCESS_PROFILE: ${{ inputs.access_profile }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add aimn-state/runs/
+          git commit -m "Record AIMN ${TASK_TYPE} run (${ACCESS_PROFILE})" || {
+            echo "No new run record to commit."
+            exit 1
+          }
+          git push
