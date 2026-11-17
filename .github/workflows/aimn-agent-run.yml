@@ -27,7 +27,7 @@ on:
           - expanded
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: aimn-agent-run
@@ -38,6 +38,8 @@ jobs:
     name: Run bounded AIMN planning agent
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - name: Check out AIMN
         uses: actions/checkout@v4
@@ -57,7 +59,32 @@ jobs:
             --task-type "$TASK_TYPE" \
             --instruction "$TASK_INSTRUCTION" \
             --access-profile "$ACCESS_PROFILE"
-      - name: Persist run record
+      - name: Keep a downloadable run record
+        uses: actions/upload-artifact@v4
+        with:
+          name: aimn-run-record-${{ github.run_id }}
+          path: aimn-state/runs/*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  persist-run-record:
+    name: Persist approved internal run record
+    needs: run-agent
+    if: inputs.access_profile != 'restricted'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out AIMN
+        uses: actions/checkout@v4
+        with:
+          ref: feature/aimn-foundation
+      - name: Download run record
+        uses: actions/download-artifact@v4
+        with:
+          name: aimn-run-record-${{ github.run_id }}
+          path: aimn-state/runs
+      - name: Commit internal run record
         env:
           TASK_TYPE: ${{ inputs.task_type }}
           ACCESS_PROFILE: ${{ inputs.access_profile }}
@@ -65,8 +92,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add aimn-state/runs/
-          git commit -m "Record AIMN ${TASK_TYPE} run (${ACCESS_PROFILE})" || {
-            echo "No new run record to commit."
-            exit 1
-          }
+          git commit -m "Record AIMN ${TASK_TYPE} run (${ACCESS_PROFILE})"
           git push
