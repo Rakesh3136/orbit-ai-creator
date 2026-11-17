@@ -15,7 +15,7 @@ from pathlib import Path
 
 PROFILES = {
     "restricted": {
-        "description": "Read/planning only; no external writes.",
+        "description": "Planning only; run record is retained as a downloadable artifact, not committed.",
         "external_actions": False,
         "repository_writes": False,
         "requires_owner_approval": True,
@@ -27,7 +27,7 @@ PROFILES = {
         "requires_owner_approval": True,
     },
     "expanded": {
-        "description": "Expanded internal workflow planning; external actions remain disabled.",
+        "description": "Same current repository-write scope as balanced; future internal tools remain disabled until reviewed.",
         "external_actions": False,
         "repository_writes": True,
         "requires_owner_approval": True,
