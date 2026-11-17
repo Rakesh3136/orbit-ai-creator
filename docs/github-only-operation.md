@@ -11,7 +11,7 @@ AIMN is being adapted for an Android-first, GitHub-hosted control experience:
 5. The runner creates a bounded plan and an auditable JSON record.
 6. The owner reviews workflow status and controls the next action.
 
-## Honest platform boundary
+## Public-repository privacy\n\nThis repository is public. Workflow details, artifacts, and committed run records may be visible to anyone. The runner deliberately omits raw task text from the JSON run record and stores only its character count. Nevertheless, submit only public, non-sensitive instructions. Never enter passwords, access tokens, OAuth client JSON, personal data, or confidential channel plans.\n\n## Honest platform boundary
 
 GitHub Pages serves static files; it does not run a persistent API server. GitHub Actions runs finite jobs and is not a 24/7 worker or database. The GitHub-only design therefore uses workflow dispatch and versioned repository state. It must not claim to provide always-on agents, unlimited compute, permanent background execution, or guaranteed model inference.
 
